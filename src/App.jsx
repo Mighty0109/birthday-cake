@@ -396,8 +396,8 @@ function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
                 cx={pos.x} cy={candleTop - 3}
                 lit={candlesLit} tiltX={tiltX} blowIntensity={blowIntensity} delay={i}
               />
-              {/* B급 연기 - 불 꺼졌을 때 */}
-              {!candlesLit && (
+              {/* B급 연기 - 불 켜져있을 때 */}
+              {candlesLit && (
                 <SvgSmoke cx={pos.x} cy={candleTop - 5} delay={i * 0.15} age={age} tiltX={tiltX} />
               )}
             </g>
