@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 
 // ============================================================
 // 📷 전면 카메라 훅
@@ -7,6 +7,7 @@ import { useRef, useEffect, useCallback } from "react";
 export function useCamera() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const [active, setActive] = useState(false);
 
   const start = useCallback(async () => {
     try {
@@ -18,7 +19,10 @@ export function useCamera() {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
-    } catch {}
+      setActive(true);
+    } catch {
+      setActive(false);
+    }
   }, []);
 
   const stop = useCallback(() => {
@@ -26,6 +30,7 @@ export function useCamera() {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    setActive(false);
   }, []);
 
   // 컴포넌트 언마운트 시 카메라 정리
@@ -37,5 +42,5 @@ export function useCamera() {
     };
   }, []);
 
-  return { videoRef, start, stop };
+  return { videoRef, active, start, stop };
 }

@@ -99,7 +99,7 @@ export function ViewPage({ data }) {
           background: `radial-gradient(ellipse at 50% 60%, rgba(200,120,40,${0.15 * glow}) 0%, rgba(30,20,15,0.7) 60%)`,
         }} />
         {/* 셀카 효과 */}
-        <FaceEffects active={true} />
+        <FaceEffects active={camera.active} />
         <div style={{ zIndex: 1, textAlign: "center", paddingTop: "25vh" }}>
           <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
 
