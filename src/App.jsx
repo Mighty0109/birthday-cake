@@ -283,6 +283,24 @@ function SvgSmoke({ cx, cy, delay = 0, age = 1, tiltX = 0 }) {
 function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
   const theme = getCakeTheme(age);
   const numCandles = Math.min(age, 25);
+  const [showSmoke, setShowSmoke] = useState(false);
+  const wasLitRef = useRef(candlesLit);
+
+  useEffect(() => {
+    // 초가 켜져있으면 연기 ON
+    if (candlesLit) {
+      setShowSmoke(true);
+      wasLitRef.current = true;
+    }
+    // 초가 방금 꺼졌으면 1초 후 연기 OFF
+    if (!candlesLit && wasLitRef.current) {
+      const t = setTimeout(() => {
+        setShowSmoke(false);
+        wasLitRef.current = false;
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+  }, [candlesLit]);
   
   // Calculate candle positions on the frosting top ellipse
   // Frosting top: ellipse at cy=44, rx=103 → usable width ~190px (55 to 245)
@@ -396,8 +414,8 @@ function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
                 cx={pos.x} cy={candleTop - 3}
                 lit={candlesLit} tiltX={tiltX} blowIntensity={blowIntensity} delay={i}
               />
-              {/* B급 연기 - 불 켜져있을 때 */}
-              {candlesLit && (
+              {/* B급 연기 - 불 켜져있을 때 + 꺼진 후 1초 */}
+              {showSmoke && (
                 <SvgSmoke cx={pos.x} cy={candleTop - 5} delay={i * 0.15} age={age} tiltX={tiltX} />
               )}
             </g>
@@ -668,20 +686,21 @@ function ViewPage({ data }) {
             <p style={{ fontFamily: FONT, fontSize: "clamp(18px, 5vw, 26px)", color: C.mustard }}>
               소원 빌고... 후~ 불어봐! 🌬️
             </p>
-            {hasGyro && <p style={{ fontFamily: FONT, fontSize: 13, color: "#665544", marginTop: 6 }}>📱 폰 기울이면 초가 움직여!</p>}
-            {failCount > 0 && blowIntensity < 0.1 && (
-              <p style={{ fontFamily: FONT, fontSize: "clamp(14px, 4vw, 18px)", color: C.dustyPink, marginTop: 10, animation: "shake 0.5s ease-out" }}>
-                {failCount === 1 && "ㅋㅋ 폐활량 실화?"}
-                {failCount === 2 && "좀 더 세게 불어봐 ㅋㅋㅋ"}
-                {failCount >= 3 && "혹시 지금 무호흡? 😂"}
-              </p>
-            )}
+            <div style={{ minHeight: 30, marginTop: 10 }}>
+              {failCount > 0 && blowIntensity < 0.1 && (
+                <p style={{ fontFamily: FONT, fontSize: "clamp(14px, 4vw, 18px)", color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
+                  {failCount === 1 && "ㅋㅋ 폐활량 실화?"}
+                  {failCount === 2 && "좀 더 세게 불어봐 ㅋㅋㅋ"}
+                  {failCount >= 3 && "혹시 지금 무호흡? 😂"}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Blow gauge - vintage style */}
           <div style={{ marginTop: 18, width: 180, marginLeft: "auto", marginRight: "auto" }}>
-            <p style={{ fontFamily: FONT, fontSize: 12, color: "#665544", marginBottom: 4, textAlign: "left" }}>바람 세기 ~</p>
-            <div style={{ width: "100%", height: 12, background: "rgba(255,255,255,0.1)", borderRadius: 6, border: `2px solid ${C.brown}40`, overflow: "hidden" }}>
+            <p style={{ fontFamily: FONT, fontSize: 12, color: C.mustard, marginBottom: 4, textAlign: "left" }}>바람 세기 ~</p>
+            <div style={{ width: "100%", height: 12, background: "rgba(255,255,255,0.15)", borderRadius: 6, border: `2px solid ${C.mustard}60`, overflow: "hidden" }}>
               <div style={{
                 width: `${blowIntensity * 100}%`, height: "100%",
                 background: blowIntensity > 0.7 ? C.orange : blowIntensity > 0.3 ? C.mustard : C.sage,
