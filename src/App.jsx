@@ -228,6 +228,56 @@ function SvgFlame({ cx, cy, lit, tiltX = 0, blowIntensity = 0, delay = 0 }) {
 }
 
 // ============================================================
+// B급 연기 이펙트 💨
+// ============================================================
+function SvgSmoke({ cx, cy, delay = 0, age = 1, tiltX = 0 }) {
+  const [puffStates, setPuffStates] = useState([]);
+  const intensity = Math.min(age, 25);
+  const puffCount = Math.min(3, 1 + Math.floor(intensity / 8));
+  const baseSize = 3 + intensity * 0.3;
+
+  useEffect(() => {
+    const initPuffs = Array.from({ length: puffCount }, (_, p) => ({
+      t: -(delay * 0.3 + p * 0.7),
+      dur: 1.8 + p * 0.5,
+      wobbleDir: p % 2 === 0 ? -1 : 1,
+      wobbleAmt: 4 + p * 2,
+      size: baseSize + p * 1.5,
+    }));
+    setPuffStates(initPuffs);
+
+    const id = setInterval(() => {
+      setPuffStates(prev => prev.map(puff => {
+        let t = puff.t + 0.05;
+        if (t > puff.dur) t = 0;
+        return { ...puff, t };
+      }));
+    }, 50);
+    return () => clearInterval(id);
+  }, [puffCount]);
+
+  return (
+    <g transform={`translate(${cx}, ${cy})`}>
+      {puffStates.map((puff, p) => {
+        if (puff.t < 0) return null;
+        const progress = puff.t / puff.dur;
+        const y = -progress * (25 + p * 12);
+        const baseWobble = puff.wobbleDir * puff.wobbleAmt * progress;
+        const tiltOffset = tiltX * progress * 1.5;
+        const x = baseWobble + tiltOffset;
+        const r = puff.size * (0.5 + progress * 1.3);
+        const op = progress < 0.15 ? progress / 0.15 * 0.5
+                 : progress < 0.6 ? 0.5 - (progress - 0.15) * 0.4
+                 : Math.max(0, 0.32 - (progress - 0.6) * 0.8);
+        return (
+          <circle key={p} cx={x} cy={y} r={r} fill="#AAA" opacity={op} />
+        );
+      })}
+    </g>
+  );
+}
+
+// ============================================================
 // ALL-IN-ONE CAKE SVG
 // ============================================================
 function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
@@ -346,6 +396,10 @@ function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
                 cx={pos.x} cy={candleTop - 3}
                 lit={candlesLit} tiltX={tiltX} blowIntensity={blowIntensity} delay={i}
               />
+              {/* B급 연기 - 불 꺼졌을 때 */}
+              {!candlesLit && (
+                <SvgSmoke cx={pos.x} cy={candleTop - 5} delay={i * 0.15} age={age} tiltX={tiltX} />
+              )}
             </g>
           );
         })}
@@ -668,7 +722,21 @@ function ViewPage({ data }) {
           {name}
         </p>
 
-        <WarmCake age={age} name={name} candlesLit={false} tiltX={0} blowIntensity={0} />
+        <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} />
+
+        {/* B급 연기 코멘트 */}
+        <p style={{
+          fontFamily: FONT, fontSize: "clamp(13px, 3.5vw, 16px)", color: C.faded,
+          margin: "8px 0 0 0", animation: "fadeIn 1.5s ease-out",
+        }}>
+          {age <= 5 ? "💨 후~ 살짝 연기남" :
+           age <= 15 ? "💨💨 연기 좀 나네~" :
+           age <= 25 ? "💨💨💨 연기 꽤 나는데...?" :
+           age <= 40 ? "🌫️ 헉 연기 장난 아닌데;;;" :
+           age <= 60 ? "🚨 화재 아닙니다 화재 아닙니다" :
+           age <= 80 ? "🧯 119 부를까...?" :
+           "☁️ 여기 구름 낀 거 아님?? 케이크에서 나는 거임"}
+        </p>
 
         {/* Roast - postcard style */}
         <HandBox color={C.mustard} style={{ marginTop: 20, maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
