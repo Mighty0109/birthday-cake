@@ -4,6 +4,44 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // 🎂 "촛불 끄셈 ㅋㅋ" - 2026 WARM RETRO EDITION
 // ============================================================
 
+// ============================================================
+// GOOGLE ADSENSE BANNER
+// ============================================================
+function AdBanner({ slot = "XXXXXXXXXX", format = "auto", style = {} }) {
+  const adRef = useRef(null);
+  const pushed = useRef(false);
+  const [adReady, setAdReady] = useState(false);
+
+  useEffect(() => {
+    // Only render ad if AdSense script is actually loaded
+    if (window.adsbygoogle && !pushed.current) {
+      setAdReady(true);
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        pushed.current = true;
+      } catch (e) {
+        console.log("AdSense error:", e);
+      }
+    }
+  }, []);
+
+  if (!adReady) return null;
+
+  return (
+    <div style={{ width: "100%", maxWidth: 360, margin: "16px auto", textAlign: "center", overflow: "hidden", ...style }}>
+      <ins
+        className="adsbygoogle"
+        ref={adRef}
+        style={{ display: "block" }}
+        data-ad-client="ca-pub-3089729030829076"
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-full-width-responsive="true"
+      />
+    </div>
+  );
+}
+
 const FONT = "'Gaegu', cursive";
 const FONT_EN = "'Caveat', cursive";
 
@@ -428,6 +466,8 @@ function CreatePage() {
               </button>
             </div>
           </HandBox>
+          {/* Ad - Create page bottom */}
+          <AdBanner slot="1111111111" style={{ marginTop: 20 }} />
         </div>
       </div>
     );
@@ -453,6 +493,8 @@ function CreatePage() {
           <button onClick={() => setStep(0)} style={{ ...warmBtn, background: C.faded, flex: "1 1 130px" }}>← 다시 만들기</button>
           <button onClick={handleShare} style={{ ...warmBtn, flex: "1 1 130px" }}>🔗 링크 복사해서 보내기</button>
         </div>
+        {/* Ad - Preview page */}
+        <AdBanner slot="2222222222" style={{ marginTop: 20 }} />
       </div>
     </div>
   );
@@ -651,8 +693,11 @@ function ViewPage({ data }) {
           </div>
         )}
 
+        {/* Ad - Result page */}
+        <AdBanner slot="3333333333" style={{ marginTop: 16 }} />
+
         <button onClick={() => { window.location.hash = ""; window.location.reload(); }}
-          style={{ ...warmBtn, marginTop: 22 }}>
+          style={{ ...warmBtn, marginTop: 12 }}>
           🎂 나도 케이크 보내기
         </button>
       </div>
