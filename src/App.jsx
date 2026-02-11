@@ -151,9 +151,9 @@ function Starburst({ size = 60, color = C.mustard, style = {} }) {
 }
 
 // ============================================================
-// HAND-DRAWN FLAME
+// SVG FLAME (inside SVG)
 // ============================================================
-function WarmFlame({ lit, tiltX = 0, blowIntensity = 0, delay = 0 }) {
+function SvgFlame({ cx, cy, lit, tiltX = 0, blowIntensity = 0, delay = 0 }) {
   const [flicker, setFlicker] = useState(0);
   const gradId = useRef(`fl_${Math.random().toString(36).slice(2,7)}`);
   useEffect(() => {
@@ -162,22 +162,15 @@ function WarmFlame({ lit, tiltX = 0, blowIntensity = 0, delay = 0 }) {
     return () => clearInterval(id);
   }, [lit, delay]);
   if (!lit) return null;
-  const angle = tiltX * 1.5 + flicker;
-  const sc = Math.max(0, 1 - blowIntensity * 0.8);
+  const angle = tiltX * 1.2 + flicker;
+  const sc = Math.max(0.05, 1 - blowIntensity * 0.8);
   const op = Math.max(0.15, 1 - blowIntensity * 0.5);
   return (
-    <div style={{
-      position: "absolute", top: -20, left: "50%",
-      transformOrigin: "center bottom",
-      transform: `translateX(-50%) rotate(${angle}deg) scaleY(${sc})`,
-      transition: "transform 0.1s ease-out", opacity: op,
-    }}>
-      <div style={{
-        position: "absolute", width: 30, height: 30, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,180,60,0.5), transparent 60%)",
-        top: -8, left: -9,
-      }}/>
-      <svg width="14" height="22" viewBox="0 0 14 22" style={{ display: "block" }}>
+    <g transform={`translate(${cx}, ${cy})`} opacity={op}>
+      {/* Glow */}
+      <circle cx="0" cy="-8" r="10" fill="rgba(255,180,60,0.35)" />
+      {/* Flame */}
+      <g transform={`rotate(${angle}, 0, 0) scale(1, ${sc})`}>
         <defs>
           <linearGradient id={gradId.current} x1="0" y1="1" x2="0" y2="0">
             <stop offset="0%" stopColor="#D4572A" />
@@ -187,122 +180,138 @@ function WarmFlame({ lit, tiltX = 0, blowIntensity = 0, delay = 0 }) {
           </linearGradient>
         </defs>
         <path
-          d="M7,1 C10,4 12,8 11,12 C12,15 10,19 7,21 C4,19 2,15 3,12 C2,8 4,4 7,1 Z"
+          d="M0,-2 C2,-6 5,-10 4,-14 C5,-17 3,-20 0,-22 C-3,-20 -5,-17 -4,-14 C-5,-10 -2,-6 0,-2 Z"
           fill={`url(#${gradId.current})`}
-          stroke="#C4572A" strokeWidth="0.8" strokeLinejoin="round"
+          stroke="#C4572A" strokeWidth="0.6"
         />
-      </svg>
-    </div>
+      </g>
+    </g>
   );
 }
 
 // ============================================================
-// HAND-DRAWN CANDLE
-// ============================================================
-function WarmCandle({ lit, tiltX, blowIntensity, index }) {
-  const colors = [C.dustyPink, C.sage, C.mustard, C.orange, "#B8A0D4", "#7CB8B8", "#D4B878", "#C47878"];
-  const color = colors[index % colors.length];
-  const h = 26 + (index % 3) * 5;
-  const lean = (index % 2 === 0) ? -1.5 : 1.5;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", margin: "0 2px" }}>
-      <div style={{ position: "relative", height: 22, width: 16 }}>
-        <WarmFlame lit={lit} tiltX={tiltX} blowIntensity={blowIntensity} delay={index} />
-      </div>
-      {/* Wick */}
-      <svg width="6" height="6" style={{ display: "block" }}>
-        <path d={`M3,0 Q${2+lean*0.3},3 3,6`} stroke={C.ink} strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-      </svg>
-      {/* Candle body - hand drawn */}
-      <svg width="12" height={h} style={{ display: "block" }}>
-        <path
-          d={`M2,0 Q${1+lean},${h*0.4} 2,${h} L10,${h} Q${11-lean},${h*0.4} 10,0 Z`}
-          fill={color} stroke={C.ink} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"
-        />
-        <line x1="3" y1={h*0.5} x2="9" y2={h*0.5} stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="2,3"/>
-      </svg>
-    </div>
-  );
-}
-
-// ============================================================
-// HAND-DRAWN CAKE
+// ALL-IN-ONE CAKE SVG
 // ============================================================
 function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
   const theme = getCakeTheme(age);
   const numCandles = Math.min(age, 25);
-  const rows = [];
-  if (numCandles <= 5) rows.push(numCandles);
-  else if (numCandles <= 12) { rows.push(Math.ceil(numCandles / 2)); rows.push(Math.floor(numCandles / 2)); }
-  else { const p = Math.ceil(numCandles / 3); rows.push(p); rows.push(p); rows.push(numCandles - p * 2); }
-  let ci = 0;
+  
+  // Calculate candle positions on the frosting top ellipse
+  // Frosting top: ellipse at cy=44, rx=103 → usable width ~190px (55 to 245)
+  const candlePositions = [];
+  const rowCount = numCandles <= 8 ? 1 : 2;
+  
+  if (rowCount === 1) {
+    const count = numCandles;
+    const totalW = 180;
+    const spacing = count <= 1 ? 0 : totalW / (count - 1);
+    const startX = 150 - totalW / 2;
+    for (let i = 0; i < count; i++) {
+      candlePositions.push({ x: startX + i * spacing, row: 0 });
+    }
+  } else {
+    const topRow = Math.ceil(numCandles / 2);
+    const botRow = numCandles - topRow;
+    const totalW1 = 186;
+    const spacing1 = topRow <= 1 ? 0 : totalW1 / (topRow - 1);
+    const startX1 = 150 - totalW1 / 2;
+    for (let i = 0; i < topRow; i++) {
+      candlePositions.push({ x: startX1 + i * spacing1, row: 0 });
+    }
+    const totalW2 = 160;
+    const spacing2 = botRow <= 1 ? 0 : totalW2 / (botRow - 1);
+    const startX2 = 150 - totalW2 / 2;
+    for (let i = 0; i < botRow; i++) {
+      candlePositions.push({ x: startX2 + i * spacing2, row: 1 });
+    }
+  }
+
+  const colors = [C.dustyPink, C.sage, C.mustard, C.orange, "#B8A0D4", "#7CB8B8", "#D4B878", "#C47878"];
+
+  // viewBox height depends on candle count
+  const vTop = -50; // space for flames above
+  const vH = 160 - vTop;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {/* Candles */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        {rows.map((count, ri) => (
-          <div key={ri} style={{ display: "flex", justifyContent: "center" }}>
-            {Array.from({ length: count }).map((_, i) => {
-              const idx = ci++;
-              return <WarmCandle key={idx} index={idx} lit={candlesLit} tiltX={tiltX} blowIntensity={blowIntensity} />;
-            })}
-          </div>
-        ))}
-      </div>
+      <svg viewBox={`0 ${vTop} 300 ${vH}`} width="min(82vw, 310px)" style={{ display: "block", overflow: "visible" }}>
 
-      {/* Cake SVG - wobbly hand-drawn style */}
-      <svg viewBox="0 0 300 150" width="min(80vw, 300px)" style={{ display: "block", overflow: "visible" }}>
+        {/* === CAKE BODY === */}
         {/* Plate shadow */}
-        <ellipse cx="150" cy="146" rx="155" ry="8" fill="rgba(0,0,0,0.15)" />
+        <ellipse cx="150" cy="152" rx="155" ry="8" fill="rgba(0,0,0,0.12)" />
         {/* Plate */}
-        <path d="M-2,140 Q0,148 150,150 Q300,148 302,140 Q300,136 150,138 Q0,136 -2,140 Z"
+        <path d="M-2,146 Q0,154 150,156 Q300,154 302,146 Q300,142 150,144 Q0,142 -2,146 Z"
           fill={theme.plate} stroke={C.ink} strokeWidth="2" strokeLinejoin="round" />
 
-        {/* Bottom layer - wobbly */}
-        <path d="M25,138 Q23,95 30,88 Q70,80 150,82 Q230,80 270,88 Q277,95 275,138 Z"
+        {/* Bottom layer */}
+        <path d="M25,144 Q23,100 30,93 Q70,85 150,87 Q230,85 270,93 Q277,100 275,144 Z"
           fill={theme.cake} stroke={C.ink} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-
-        {/* Wavy decoration on bottom */}
-        <path d="M50,115 Q80,110 110,115 Q140,120 170,115 Q200,110 230,115 Q250,118 260,115"
+        <path d="M50,120 Q80,115 110,120 Q140,125 170,120 Q200,115 230,120 Q250,123 260,120"
           fill="none" stroke={theme.frost} strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
-        <path d="M45,128 Q90,122 150,126 Q210,122 255,128"
+        <path d="M45,133 Q90,127 150,131 Q210,127 255,133"
           fill="none" stroke={theme.frost} strokeWidth="2" strokeLinecap="round" strokeDasharray="6,4" opacity="0.4" />
 
-        {/* Top layer - wobbly */}
-        <path d="M45,88 Q43,48 50,42 Q85,34 150,36 Q215,34 250,42 Q257,48 255,88 Z"
+        {/* Top layer */}
+        <path d="M45,93 Q43,53 50,47 Q85,39 150,41 Q215,39 250,47 Q257,53 255,93 Z"
           fill={theme.cake2} stroke={C.ink} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
 
-        {/* Frosting - blobby drips */}
-        <path d="M47,45 Q52,35 70,38 Q90,32 110,37 Q130,32 150,35 Q170,30 190,36 Q210,32 230,37 Q248,34 253,45"
-          fill={theme.frost} stroke={C.ink} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {/* Frosting top surface */}
+        <ellipse cx="150" cy="44" rx="103" ry="10" fill={theme.frost} stroke={C.ink} strokeWidth="2" />
 
-        {/* Drips */}
-        {[{x:68,h:20},{x:115,h:28},{x:185,h:24},{x:238,h:18}].map((d,i) => (
-          <path key={i} d={`M${d.x},40 Q${d.x-2},${40+d.h*0.6} ${d.x+1},${40+d.h}`}
-            fill="none" stroke={theme.frost} strokeWidth={6+i%2*2} strokeLinecap="round" />
-        ))}
-        {/* Drip outlines */}
-        {[{x:68,h:20},{x:115,h:28},{x:185,h:24},{x:238,h:18}].map((d,i) => (
-          <path key={`o${i}`} d={`M${d.x},40 Q${d.x-2},${40+d.h*0.6} ${d.x+1},${40+d.h}`}
-            fill="none" stroke={C.ink} strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
+        {/* Frosting drips */}
+        {[{x:68,h:18},{x:110,h:26},{x:185,h:22},{x:238,h:16}].map((d,i) => (
+          <g key={i}>
+            <path d={`M${d.x},48 Q${d.x-2},${48+d.h*0.6} ${d.x+1},${48+d.h}`}
+              fill="none" stroke={theme.frost} strokeWidth={6+i%2*2} strokeLinecap="round" />
+            <path d={`M${d.x},48 Q${d.x-2},${48+d.h*0.6} ${d.x+1},${48+d.h}`}
+              fill="none" stroke={C.ink} strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
+          </g>
         ))}
 
-        {/* Small decorations - dots, stars */}
-        {[{x:80,y:100},{x:150,y:98},{x:220,y:102}].map((p,i) => (
+        {/* Decorations */}
+        {[{x:80,y:108},{x:150,y:106},{x:220,y:110}].map((p,i) => (
           <circle key={i} cx={p.x} cy={p.y} r={3+i%2} fill={theme.accent} stroke={C.ink} strokeWidth="1" opacity="0.7" />
         ))}
 
-        {/* Name on cake */}
-        <text x="150" y="118" textAnchor="middle"
+        {/* Name */}
+        <text x="150" y="125" textAnchor="middle"
           style={{ fontFamily: FONT, fontSize: Math.min(20, Math.max(12, 200/Math.max(name.length,1))), fill: theme.frost, fontWeight: 700 }}
-          stroke={C.ink} strokeWidth="0.5" transform="rotate(-1.5, 150, 118)">
+          stroke={C.ink} strokeWidth="0.5" transform="rotate(-1.5, 150, 125)">
           {name}
         </text>
+        <text x="90" y="75" style={{ fontSize: 10, fontFamily: FONT }} fill={theme.accent} opacity="0.5">✦</text>
+        <text x="200" y="73" style={{ fontSize: 8, fontFamily: FONT }} fill={theme.accent} opacity="0.5">✦</text>
 
-        {/* Little star decorations */}
-        <text x="90" y="70" style={{ fontSize: 10, fontFamily: FONT }} fill={theme.accent} opacity="0.5">✦</text>
-        <text x="200" y="68" style={{ fontSize: 8, fontFamily: FONT }} fill={theme.accent} opacity="0.5">✦</text>
+        {/* === CANDLES (on top of frosting) === */}
+        {candlePositions.map((pos, i) => {
+          const color = colors[i % colors.length];
+          const h = 22 + (i % 3) * 4;
+          const lean = (i % 2 === 0) ? -1 : 1;
+          const baseY = 42 - pos.row * 4; // frosting top, slightly higher for back row
+          const candleTop = baseY - h;
+          return (
+            <g key={i}>
+              {/* Candle body */}
+              <rect x={pos.x - 3} y={candleTop} width={6} height={h} rx={1}
+                fill={color} stroke={C.ink} strokeWidth="1.2" 
+                transform={`rotate(${lean}, ${pos.x}, ${baseY})`} />
+              {/* Stripe */}
+              <line x1={pos.x - 2} y1={candleTop + h * 0.5} x2={pos.x + 2} y2={candleTop + h * 0.5}
+                stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" strokeLinecap="round"
+                transform={`rotate(${lean}, ${pos.x}, ${baseY})`} />
+              {/* Wick */}
+              <line x1={pos.x} y1={candleTop - 3} x2={pos.x + lean * 0.3} y2={candleTop}
+                stroke={C.ink} strokeWidth="1" strokeLinecap="round"
+                transform={`rotate(${lean}, ${pos.x}, ${baseY})`} />
+              {/* Flame */}
+              <SvgFlame
+                cx={pos.x} cy={candleTop - 3}
+                lit={candlesLit} tiltX={tiltX} blowIntensity={blowIntensity} delay={i}
+              />
+            </g>
+          );
+        })}
+
       </svg>
 
       {/* Fire alarm for 50+ */}
