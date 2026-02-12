@@ -49,9 +49,23 @@ export function ViewPage({ data }) {
 
   const handleIntroTap = async () => {
     await requestPermission();
-    // iOS: 순차적으로 요청해야 둘 다 권한 팝업이 뜸
-    const micOk = await mic.start();
-    await camera.start();
+    // iOS: 한 번의 getUserMedia로 audio+video 동시 요청 (제스처 컨텍스트 유지)
+    let micOk = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: "user" },
+      });
+      const audioStream = new MediaStream(stream.getAudioTracks());
+      const videoStream = new MediaStream(stream.getVideoTracks());
+      micOk = await mic.start(audioStream);
+      await camera.start(videoStream);
+    } catch {
+      // 카메라 거부 시 마이크만 시도
+      try {
+        micOk = await mic.start();
+      } catch {}
+    }
     setPhase("lit");
     if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
@@ -77,7 +91,7 @@ export function ViewPage({ data }) {
             <span style={{ fontFamily: FONT, fontSize: 16, color: C.mustard, fontWeight: 700 }}>톡! 터치!</span>
           </div>
           <p style={{ fontFamily: FONT, fontSize: 12, color: "#554433", marginTop: 20 }}>
-            ※ 마이크 권한이 필요해 (후~ 불어서 끄려면)
+            ※ 마이크 + 카메라 권한이 필요해
           </p>
         </div>
       </div>

@@ -18,9 +18,9 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
   useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
   useEffect(() => { failCountRef.current = failCount; }, [failCount]);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (existingStream) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = existingStream || await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = ctx;

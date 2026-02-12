@@ -10,9 +10,9 @@ export function useCamera() {
   const [active, setActive] = useState(false);
 
   // 스트림 획득 (유저 제스처 안에서 호출)
-  const start = useCallback(async () => {
+  const start = useCallback(async (existingStream) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const stream = existingStream || await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
       });
       streamRef.current = stream;
