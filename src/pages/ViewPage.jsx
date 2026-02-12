@@ -5,13 +5,11 @@ import { getCakeTheme } from "../utils/cakeTheme";
 import { useGyroscope } from "../hooks/useGyroscope";
 import { useMicrophone } from "../hooks/useMicrophone";
 import { useCamera } from "../hooks/useCamera";
-import { useFaceDetection } from "../hooks/useFaceDetection";
 import { PaperGrain } from "../components/PaperGrain";
 import { HandBox } from "../components/HandBox";
 import { Starburst } from "../components/Starburst";
 import { WarmCake } from "../components/WarmCake";
 import { WarmConfetti } from "../components/WarmConfetti";
-import { FaceEffects } from "../components/FaceEffects";
 import { AdBanner } from "../components/AdBanner";
 
 // ============================================================
@@ -29,7 +27,6 @@ export function ViewPage({ data }) {
 
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
-  const { faceBox } = useFaceDetection(camera.videoElRef, camera.active);
   const cameraStopRef = useRef(camera.stop);
   cameraStopRef.current = camera.stop;
 
@@ -57,7 +54,7 @@ export function ViewPage({ data }) {
     if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
 
-  // 📸 셀카 캡처 (효과 + 케이크 모두 포함, iOS 호환)
+  // 📸 셀카 캡처 (케이크 포함, iOS 호환)
   const handleCapture = useCallback(() => {
     const container = document.querySelector("[data-capture]");
     if (!container) return;
@@ -100,38 +97,30 @@ export function ViewPage({ data }) {
     ctx.fillStyle = "rgba(20,15,10,0.35)";
     ctx.fillRect(0, 0, cw, ch);
 
-    // ③ 모든 SVG 요소를 canvas에 그리기 (효과 + 케이크)
-    const allSvgs = container.querySelectorAll("svg[data-face-effect], svg[data-cake]");
+    // ③ 케이크 SVG 캡처
+    const cakeSvg = container.querySelector("svg[data-cake]");
     const contRect = container.getBoundingClientRect();
 
-    // SVG를 순서대로 비동기 그리기
-    const drawSvgs = (index) => {
-      if (index >= allSvgs.length) {
-        // ④ 하단 텍스트 오버레이
-        ctx.fillStyle = "rgba(20,15,10,0.6)";
-        ctx.fillRect(0, ch - 60, cw, 60);
-        ctx.font = "bold 16px 'Gaegu', cursive";
-        ctx.fillStyle = "#D4A535";
-        ctx.textAlign = "center";
-        ctx.fillText("🎂 생일 축하해! 후~ 🌬️", cw / 2, ch - 25);
+    const finalize = () => {
+      // 하단 텍스트
+      ctx.fillStyle = "rgba(20,15,10,0.6)";
+      ctx.fillRect(0, ch - 50, cw, 50);
+      ctx.font = "bold 16px 'Gaegu', cursive";
+      ctx.fillStyle = "#D4A535";
+      ctx.textAlign = "center";
+      ctx.fillText("🎂 생일 축하해! 후~ 🌬️", cw / 2, ch - 20);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      setCapturedImg(dataUrl);
+    };
 
-        // 완료 → 미리보기
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-        setCapturedImg(dataUrl);
-        return;
-      }
-
-      const svgEl = allSvgs[index];
-      const svgRect = svgEl.getBoundingClientRect();
+    if (cakeSvg) {
+      const svgRect = cakeSvg.getBoundingClientRect();
       const ex = svgRect.left - contRect.left;
       const ey = svgRect.top - contRect.top;
       const ew = svgRect.width;
       const eh = svgRect.height;
-
-      // SVG 클론 + 직렬화
-      const clone = svgEl.cloneNode(true);
+      const clone = cakeSvg.cloneNode(true);
       clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      // 인라인 스타일이 없는 요소도 렌더되도록 viewBox 유지
       const svgStr = new XMLSerializer().serializeToString(clone);
       const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -139,16 +128,13 @@ export function ViewPage({ data }) {
       img.onload = () => {
         ctx.drawImage(img, ex, ey, ew, eh);
         URL.revokeObjectURL(url);
-        drawSvgs(index + 1);
+        finalize();
       };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        drawSvgs(index + 1);
-      };
+      img.onerror = () => { URL.revokeObjectURL(url); finalize(); };
       img.src = url;
-    };
-
-    drawSvgs(0);
+    } else {
+      finalize();
+    }
   }, []);
 
   // ─── INTRO ───
@@ -196,9 +182,6 @@ export function ViewPage({ data }) {
           position: "absolute", inset: 0, zIndex: 0,
           background: "radial-gradient(ellipse at 50% 70%, rgba(200,120,40," + (0.15 * glow) + ") 0%, rgba(30,20,15,0.75) 60%)",
         }} />
-
-        {/* 셀카 효과 (얼굴 트래킹) */}
-        <FaceEffects active={camera.active} faceBox={faceBox} />
 
         {/* 📸 셀카 버튼 */}
         {camera.active && (

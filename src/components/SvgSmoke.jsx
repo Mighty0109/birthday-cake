@@ -7,8 +7,8 @@ import { useState, useEffect } from "react";
 export function SvgSmoke({ cx, cy, delay = 0, age = 1, tiltX = 0 }) {
   const [puffStates, setPuffStates] = useState([]);
   const intensity = Math.min(age, 25);
-  const puffCount = Math.min(3, 1 + Math.floor(intensity / 8));
-  const baseSize = 3 + intensity * 0.3;
+  const puffCount = Math.min(4, 1 + Math.floor(intensity / 6));
+  const baseSize = 5 + intensity * 0.4;
 
   useEffect(() => {
     const initPuffs = Array.from({ length: puffCount }, (_, p) => ({
@@ -44,11 +44,11 @@ export function SvgSmoke({ cx, cy, delay = 0, age = 1, tiltX = 0 }) {
         const r = puff.size * (0.5 + progress * 1.3);
         const op =
           progress < 0.15
-            ? (progress / 0.15) * 0.5
+            ? (progress / 0.15) * 0.7
             : progress < 0.6
-            ? 0.5 - (progress - 0.15) * 0.4
-            : Math.max(0, 0.32 - (progress - 0.6) * 0.8);
-        return <circle key={p} cx={x} cy={y} r={r} fill="#AAA" opacity={op} />;
+            ? 0.7 - (progress - 0.15) * 0.5
+            : Math.max(0, 0.48 - (progress - 0.6) * 1.0);
+        return <circle key={p} cx={x} cy={y} r={r} fill="#BBB" opacity={op} />;
       })}
     </g>
   );

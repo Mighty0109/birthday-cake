@@ -13,11 +13,11 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlow
   const numCandles = Math.min(age, 25);
   const [showSmoke, setShowSmoke] = useState(false);
 
-  // 연기: justBlownOut이 true면 3초간 표시
+  // 연기: justBlownOut이 true면 5초간 표시
   useEffect(() => {
     if (justBlownOut) {
       setShowSmoke(true);
-      const t = setTimeout(() => setShowSmoke(false), 3000);
+      const t = setTimeout(() => setShowSmoke(false), 5000);
       return () => clearTimeout(t);
     } else {
       setShowSmoke(false);
