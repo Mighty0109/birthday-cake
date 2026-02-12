@@ -9,21 +9,31 @@ export function useCamera() {
   const streamRef = useRef(null);
   const [active, setActive] = useState(false);
 
+  // 스트림 획득 (유저 제스처 안에서 호출)
   const start = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
       });
       streamRef.current = stream;
+      setActive(true);
+      // video 엘리먼트가 이미 있으면 바로 연결
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        videoRef.current.play().catch(() => {});
       }
-      setActive(true);
     } catch {
       setActive(false);
     }
   }, []);
+
+  // video ref가 나중에 마운트되면 스트림 연결
+  useEffect(() => {
+    if (active && streamRef.current && videoRef.current && !videoRef.current.srcObject) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  });
 
   const stop = useCallback(() => {
     if (streamRef.current) {

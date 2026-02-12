@@ -15,15 +15,17 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
   const wasLitRef = useRef(candlesLit);
 
   useEffect(() => {
+    // 초가 켜져있을 때는 연기 X, 꺼지는 순간 연기 ON → 1.5초 후 OFF
     if (candlesLit) {
-      setShowSmoke(true);
+      setShowSmoke(false);
       wasLitRef.current = true;
     }
     if (!candlesLit && wasLitRef.current) {
+      setShowSmoke(true);
       const t = setTimeout(() => {
         setShowSmoke(false);
         wasLitRef.current = false;
-      }, 1000);
+      }, 1500);
       return () => clearTimeout(t);
     }
   }, [candlesLit]);

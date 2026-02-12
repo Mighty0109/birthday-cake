@@ -35,7 +35,8 @@ export function ViewPage({ data }) {
     setShowConfetti(true);
     if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
     setTimeout(() => setShowConfetti(false), 5000);
-  }, [age, camera]);
+  // camera.stop은 useCallback([])이라 stable ref
+  }, [age, camera.stop]);
 
   const mic = useMicrophone({
     onDone: handleDone,
@@ -46,8 +47,9 @@ export function ViewPage({ data }) {
   const handleIntroTap = async () => {
     await requestPermission();
     const ok = await mic.start();
-    camera.start();
     setPhase("lit");
+    // video 엘리먼트가 렌더된 후 카메라 연결
+    setTimeout(() => camera.start(), 100);
     if (ok) setTimeout(() => mic.startDetection(), 500);
   };
 
