@@ -479,47 +479,43 @@ export function FaceEffects({ active, faceBox }) {
 
   const effect = EFFECTS[effectIdx];
 
-  // SVG viewBox 기준 얼굴 중심 / 비율
-  const SVG_FACE_CX = 150;  // viewBox 내 얼굴 중심 X
-  const SVG_FACE_CY = 170;  // viewBox 내 얼굴 중심 Y (눈 위치)
-  const SVG_FACE_W = 120;   // viewBox 내 얼굴 너비
-  const SVG_VB_W = 300;
-  const SVG_VB_H = 400;
-
+  // ─── SVG 위치 계산 ───
+  // SVG viewBox "0 0 300 400" 기준: 얼굴 중심 약 (150, 170), 얼굴 폭 약 120px
   let svgStyle;
 
-  if (faceBox) {
-    // 얼굴 감지됨 → 동적 위치/크기
-    const faceCX = (faceBox.x + faceBox.w / 2) * 100; // %
-    const faceCY = (faceBox.y + faceBox.h / 2) * 100; // %
+  if (faceBox && faceBox.w > 0.03) {
+    // ✅ FaceDetector 감지됨 (Android Chrome)
+    // 감지된 얼굴 크기에 맞게 SVG 스케일링
+    const faceScale = faceBox.w * 2.5; // 얼굴 너비 → SVG 전체 너비 비율
+    const svgW = faceScale * 100; // %
 
-    // SVG 전체 너비 = 감지된 얼굴 너비 / (SVG 얼굴 비율)
-    const svgWidthPct = (faceBox.w / (SVG_FACE_W / SVG_VB_W)) * 100;
-    const svgHeightPct = svgWidthPct * (SVG_VB_H / SVG_VB_W);
+    // 감지된 얼굴 중심
+    const fcx = (faceBox.x + faceBox.w / 2) * 100;
+    const fcy = (faceBox.y + faceBox.h / 2) * 100;
 
-    // SVG 내 얼굴 중심이 감지된 얼굴 중심과 일치하도록 오프셋
-    const offsetXPct = (SVG_FACE_CX / SVG_VB_W) * svgWidthPct;
-    const offsetYPct = (SVG_FACE_CY / SVG_VB_H) * svgHeightPct;
+    // SVG 내 얼굴 중심 비율 (150/300=0.5, 170/400=0.425)
+    const svgFcxRatio = 0.5;
+    const svgFcyRatio = 0.425;
 
     svgStyle = {
       position: "absolute",
-      left: `calc(${faceCX}% - ${offsetXPct}%)`,
-      top: `calc(${faceCY}% - ${offsetYPct}%)`,
-      width: `${svgWidthPct}%`,
-      height: `${svgHeightPct}%`,
+      left: `${fcx - svgW * svgFcxRatio}%`,
+      top: `${fcy - svgW * (400 / 300) * svgFcyRatio}%`,
+      width: `${svgW}%`,
       zIndex: 1,
       pointerEvents: "none",
       filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-      transition: "left 0.08s linear, top 0.08s linear, width 0.08s linear",
+      transition: "left 0.1s linear, top 0.1s linear, width 0.15s linear",
     };
   } else {
-    // 얼굴 감지 미지원 → 고정 위치 (fallback)
+    // 🔄 Fallback (iOS Safari 등 FaceDetector 미지원)
+    // 셀카 기준 얼굴은 화면 상단 30~40% 영역에 위치
     svgStyle = {
       position: "absolute",
-      top: "5%",
+      top: "2%",
       left: "50%",
-      transform: "translateX(-50%) scaleX(-1)",
-      width: "min(70vw, 300px)",
+      transform: "translateX(-50%)",
+      width: "min(75vw, 320px)",
       height: "auto",
       zIndex: 1,
       pointerEvents: "none",

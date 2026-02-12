@@ -26,7 +26,7 @@ export function ViewPage({ data }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [justBlownOut, setJustBlownOut] = useState(false);
 
-  // 커스텀 훅 (각자 독립적으로 스트림 관리)
+  // 커스텀 훅
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
   const { faceBox } = useFaceDetection(camera.videoElRef, camera.active);
@@ -50,41 +50,30 @@ export function ViewPage({ data }) {
   });
 
   const handleIntroTap = async () => {
-    // 마이크 (필수) - getUserMedia({ audio })
     const micOk = await mic.start();
-
-    // 카메라 (선택) - getUserMedia({ video }) - 실패해도 OK
     await camera.start();
-
-    // 자이로스코프 (선택) - 실패해도 OK
     try { await requestPermission(); } catch {}
-
     setPhase("lit");
     if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
 
   // 📸 셀카 캡처
-  const captureRef = useRef(null);
   const handleCapture = useCallback(() => {
-    const container = captureRef.current || document.querySelector('[data-capture]');
+    const container = document.querySelector("[data-capture]");
     if (!container) return;
-
-    const canvas = document.createElement("canvas");
     const video = container.querySelector("video");
     if (!video) return;
 
+    const canvas = document.createElement("canvas");
     const w = video.videoWidth || 720;
     const h = video.videoHeight || 1280;
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
-
-    // 미러 효과 적용
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, w, h);
 
-    // 다운로드
     canvas.toBlob((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
@@ -124,7 +113,7 @@ export function ViewPage({ data }) {
     );
   }
 
-  // ─── LIT (카메라 배경) ───
+  // ─── LIT (카메라 배경 + 케이크 최하단) ───
   if (phase === "lit") {
     const glow = 1 - mic.blowIntensity * 0.7;
     return (
@@ -135,71 +124,66 @@ export function ViewPage({ data }) {
           width: "100%", height: "100%",
           objectFit: "cover",
           transform: "scaleX(-1)",
-          zIndex: 0,
-          opacity: 0.5,
+          zIndex: 0, opacity: 0.5,
         }} />
         {/* 어두운 오버레이 */}
         <div style={{
           position: "absolute", inset: 0, zIndex: 0,
-          background: `radial-gradient(ellipse at 50% 60%, rgba(200,120,40,${0.15 * glow}) 0%, rgba(30,20,15,0.7) 60%)`,
+          background: `radial-gradient(ellipse at 50% 70%, rgba(200,120,40,${0.15 * glow}) 0%, rgba(30,20,15,0.75) 60%)`,
         }} />
-        {/* 셀카 효과 */}
+
+        {/* 셀카 효과 (얼굴 트래킹) */}
         <FaceEffects active={camera.active} faceBox={faceBox} />
 
-        {/* 셀카 버튼 */}
+        {/* 📸 셀카 버튼 - 우측 하단 */}
         {camera.active && (
-          <button
-            onClick={handleCapture}
-            style={{
-              position: "absolute", bottom: 24, left: "50%",
-              transform: "translateX(-50%)", zIndex: 3,
-              width: 64, height: 64, borderRadius: "50%",
-              background: "rgba(255,255,255,0.2)",
-              backdropFilter: "blur(8px)",
-              border: "3px solid #fff",
-              cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 28,
-              boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
-            }}
-          >
-            📸
-          </button>
+          <button onClick={handleCapture} style={{
+            position: "absolute", bottom: 20, right: 20, zIndex: 3,
+            width: 52, height: 52, borderRadius: "50%",
+            background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)",
+            border: "3px solid #fff", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+          }}>📸</button>
         )}
 
-        {/* 케이크 + UI를 하단에 배치 */}
+        {/* 케이크 영역 - 화면 최하단에 고정 */}
         <div style={{
-          position: "absolute", bottom: camera.active ? 100 : 30, left: 0, right: 0,
+          position: "absolute", bottom: 0, left: 0, right: 0,
           zIndex: 1, textAlign: "center",
-          transition: "bottom 0.3s ease",
+          padding: "0 0 16px 0",
+          background: "linear-gradient(transparent 0%, rgba(20,15,10,0.8) 40%)",
         }}>
-          <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
-
-          <div style={{ marginTop: 12, animation: "fadeIn 1s ease-out 0.5s both" }}>
-            <p style={{ fontFamily: FONT, fontSize: "clamp(16px, 4.5vw, 22px)", color: C.mustard, margin: 0 }}>
-              소원 빌고... 후~ 불어봐! 🌬️
-            </p>
-            <div style={{ minHeight: 24, marginTop: 6 }}>
-              {failCount > 0 && mic.blowIntensity < 0.1 && (
-                <p style={{ fontFamily: FONT, fontSize: "clamp(13px, 3.5vw, 16px)", color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
-                  {failCount === 1 && "ㅋㅋ 폐활량 실화?"}
-                  {failCount === 2 && "좀 더 세게 불어봐 ㅋㅋㅋ"}
-                  {failCount >= 3 && "혹시 지금 무호흡? 😂"}
-                </p>
-              )}
-            </div>
-          </div>
-
           {/* 바람 세기 게이지 */}
-          <div style={{ marginTop: 10, width: 160, marginLeft: "auto", marginRight: "auto" }}>
-            <p style={{ fontFamily: FONT, fontSize: 11, color: C.mustard, marginBottom: 3, textAlign: "left" }}>바람 세기 ~</p>
-            <div style={{ width: "100%", height: 10, background: "rgba(255,255,255,0.15)", borderRadius: 5, border: `2px solid ${C.mustard}60`, overflow: "hidden" }}>
+          <div style={{ width: 140, margin: "0 auto 8px auto" }}>
+            <p style={{ fontFamily: FONT, fontSize: 10, color: C.mustard, marginBottom: 2, textAlign: "left" }}>바람 세기 ~</p>
+            <div style={{ width: "100%", height: 8, background: "rgba(255,255,255,0.15)", borderRadius: 4, border: `1px solid ${C.mustard}60`, overflow: "hidden" }}>
               <div style={{
                 width: `${mic.blowIntensity * 100}%`, height: "100%",
                 background: mic.blowIntensity > 0.7 ? C.orange : mic.blowIntensity > 0.3 ? C.mustard : C.sage,
                 borderRadius: 4, transition: "width 0.1s, background 0.2s",
               }} />
             </div>
+          </div>
+
+          <p style={{ fontFamily: FONT, fontSize: "clamp(14px, 4vw, 18px)", color: C.mustard, margin: "0 0 6px 0" }}>
+            후~ 불어봐! 🌬️
+          </p>
+
+          {/* 촛불 케이크 (축소) */}
+          <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom" }}>
+            <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
+          </div>
+
+          {/* 폐활량 디스 */}
+          <div style={{ minHeight: 20, marginTop: 2 }}>
+            {failCount > 0 && mic.blowIntensity < 0.1 && (
+              <p style={{ fontFamily: FONT, fontSize: "clamp(12px, 3vw, 14px)", color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
+                {failCount === 1 && "ㅋㅋ 폐활량 실화?"}
+                {failCount === 2 && "좀 더 세게 불어봐 ㅋㅋㅋ"}
+                {failCount >= 3 && "혹시 지금 무호흡? 😂"}
+              </p>
+            )}
           </div>
         </div>
       </div>
