@@ -509,38 +509,29 @@ export function FaceEffects({ active, faceBox }) {
     };
   } else {
     // 🔄 Fallback (iOS Safari 등 FaceDetector 미지원)
+    // 얼굴은 셀카 화면의 약 35~50% 지점에 위치
+    // SVG viewBox(300x400)에서 얼굴 중심 = y170 = 42.5%
+    // → SVG top을 15%에 놓으면 얼굴중심이 15% + 55vh*0.425 ≈ 38% 정도
     svgStyle = {
-      width: "min(75vw, 300px)",
-      height: "auto",
+      position: "absolute",
+      top: "15%",
+      left: "50%",
+      width: "75vw",
+      maxWidth: 300,
+      height: "55vh",
+      transform: "translateX(-50%)",
+      zIndex: 1,
       pointerEvents: "none",
       filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
     };
   }
 
-  // fallback일 때 감싸는 wrapper로 확실한 중앙 배치
-  const needsWrapper = !(faceBox && faceBox.w > 0.03);
-  const wrapperStyle = needsWrapper ? {
-    position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 80,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
-    pointerEvents: "none",
-  } : null;
-
-  const svgElement = (
-    <svg data-face-effect viewBox="0 0 300 400" style={svgStyle}>
-      {effect.render()}
-    </svg>
-  );
-
   return (
     <>
       {/* 효과 오버레이 */}
-      {needsWrapper ? (
-        <div style={wrapperStyle}>{svgElement}</div>
-      ) : svgElement}
+      <svg data-face-effect viewBox="0 0 300 400" style={svgStyle}>
+        {effect.render()}
+      </svg>
 
       {/* 랜덤 버튼 */}
       <button
