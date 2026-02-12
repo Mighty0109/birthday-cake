@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import { C, FONT, pageStyle, warmBtn } from "../constants/theme";
 import { getRoast, getSmokeComment } from "../constants/roasts";
 import { getCakeTheme } from "../utils/cakeTheme";
@@ -24,19 +24,15 @@ export function ViewPage({ data }) {
   const [failCount, setFailCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [justBlownOut, setJustBlownOut] = useState(false);
-  const [hasCam, setHasCam] = useState(false);
-  const mainStreamRef = useRef(null);
 
-  // 커스텀 훅
+  // 커스텀 훅 (각자 독립적으로 스트림 관리)
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
+  const cameraStopRef = useRef(camera.stop);
+  cameraStopRef.current = camera.stop;
 
   const handleDone = useCallback(() => {
-    // 전체 스트림 한번에 정리
-    if (mainStreamRef.current) {
-      mainStreamRef.current.getTracks().forEach((t) => t.stop());
-      mainStreamRef.current = null;
-    }
+    cameraStopRef.current();
     setPhase("done");
     setJustBlownOut(true);
     setRoast(getRoast(age));
@@ -52,41 +48,18 @@ export function ViewPage({ data }) {
   });
 
   const handleIntroTap = async () => {
-    let micOk = false;
-    let gotVideo = false;
+    // 마이크 (필수) - getUserMedia({ audio })
+    const micOk = await mic.start();
 
-    // ① 카메라+마이크 먼저 (유저 제스처 필요 → 최우선)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      mainStreamRef.current = stream;
-      gotVideo = stream.getVideoTracks().length > 0;
-      if (gotVideo) camera.attach(stream);
-      micOk = await mic.start(stream);
-    } catch {
-      // video 실패 → audio만 재시도
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mainStreamRef.current = stream;
-        micOk = await mic.start(stream);
-      } catch {}
-    }
+    // 카메라 (선택) - getUserMedia({ video }) - 실패해도 OK
+    await camera.start();
 
-    // ② 자이로스코프는 나중에 (실패해도 OK, 기울기 효과만 안 됨)
+    // 자이로스코프 (선택) - 실패해도 OK
     try { await requestPermission(); } catch {}
 
-    setHasCam(gotVideo);
     setPhase("lit");
     if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
-
-  // 언마운트 시 스트림 정리
-  useEffect(() => {
-    return () => {
-      if (mainStreamRef.current) {
-        mainStreamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, []);
 
   // ─── INTRO ───
   if (phase === "intro") {
@@ -136,15 +109,7 @@ export function ViewPage({ data }) {
           background: `radial-gradient(ellipse at 50% 60%, rgba(200,120,40,${0.15 * glow}) 0%, rgba(30,20,15,0.7) 60%)`,
         }} />
         {/* 셀카 효과 */}
-        <FaceEffects active={hasCam} />
-        {/* 카메라 상태 (디버그) */}
-        <div style={{
-          position: "absolute", bottom: 8, left: 8, zIndex: 3,
-          fontFamily: FONT, fontSize: 11, color: hasCam ? "#4f4" : "#f44",
-          background: "rgba(0,0,0,0.5)", padding: "2px 8px", borderRadius: 8,
-        }}>
-          📷 {hasCam ? "ON" : "OFF"}
-        </div>
+        <FaceEffects active={camera.active} />
         <div style={{ zIndex: 1, textAlign: "center", paddingTop: "25vh" }}>
           <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
 

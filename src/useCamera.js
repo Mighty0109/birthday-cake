@@ -1,23 +1,41 @@
-import { useRef, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 
 // ============================================================
-// 📷 전면 카메라 훅 (스트림은 외부에서 관리)
+// 📷 전면 카메라 훅 (독립 스트림)
 // ============================================================
 
 export function useCamera() {
-  const streamRef = useRef(null);
   const videoElRef = useRef(null);
+  const streamRef = useRef(null);
+  const [active, setActive] = useState(false);
 
-  // 스트림 저장 + 이미 마운트된 video가 있으면 연결
-  const attach = useCallback((stream) => {
-    streamRef.current = stream;
-    if (videoElRef.current) {
-      videoElRef.current.srcObject = stream;
-      videoElRef.current.play().catch(() => {});
+  const start = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      });
+      streamRef.current = stream;
+      setActive(true);
+      if (videoElRef.current) {
+        videoElRef.current.srcObject = stream;
+        videoElRef.current.play().catch(() => {});
+      }
+      return true;
+    } catch {
+      setActive(false);
+      return false;
     }
   }, []);
 
-  // callback ref: video 엘리먼트가 마운트/언마운트될 때 호출
+  const stop = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setActive(false);
+  }, []);
+
+  // callback ref - video 엘리먼트 마운트 시 자동 연결
   const videoRef = useCallback((el) => {
     videoElRef.current = el;
     if (el && streamRef.current && !el.srcObject) {
@@ -26,5 +44,5 @@ export function useCamera() {
     }
   }, []);
 
-  return { videoRef, attach };
+  return { videoRef, active, start, stop };
 }

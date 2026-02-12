@@ -12,15 +12,15 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
   const blowAccRef = useRef(0);
   const animRef = useRef(null);
 
-  // 항상 최신 값을 참조하기 위한 ref (stale closure 방지)
+  // stale closure 방지용 ref
   const onDoneRef = useRef(onDone);
   const failCountRef = useRef(failCount);
   useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
   useEffect(() => { failCountRef.current = failCount; }, [failCount]);
 
-  const start = useCallback(async (existingStream) => {
+  const start = useCallback(async () => {
     try {
-      const stream = existingStream || await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = ctx;
@@ -38,10 +38,9 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
 
   const stop = useCallback(() => {
     if (animRef.current) cancelAnimationFrame(animRef.current);
-    // 스트림 정리는 ViewPage에서 담당 (공유 스트림이므로 여기서 stop 안 함)
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close().catch(() => {});
-      audioCtxRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     }
   }, []);
 
@@ -62,6 +61,10 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
         setBlowIntensity(Math.min(1, blowAccRef.current));
         if (blowAccRef.current >= 1) {
           if (animRef.current) cancelAnimationFrame(animRef.current);
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+          }
           onDoneRef.current();
           return;
         }
