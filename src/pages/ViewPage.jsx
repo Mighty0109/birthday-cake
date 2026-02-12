@@ -61,6 +61,39 @@ export function ViewPage({ data }) {
     if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
 
+  // 📸 셀카 캡처
+  const captureRef = useRef(null);
+  const handleCapture = useCallback(() => {
+    const container = captureRef.current || document.querySelector('[data-capture]');
+    if (!container) return;
+
+    const canvas = document.createElement("canvas");
+    const video = container.querySelector("video");
+    if (!video) return;
+
+    const w = video.videoWidth || 720;
+    const h = video.videoHeight || 1280;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+
+    // 미러 효과 적용
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, w, h);
+
+    // 다운로드
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `birthday-selfie-${Date.now()}.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "image/jpeg", 0.9);
+  }, []);
+
   // ─── INTRO ───
   if (phase === "intro") {
     return (
@@ -93,7 +126,7 @@ export function ViewPage({ data }) {
   if (phase === "lit") {
     const glow = 1 - mic.blowIntensity * 0.7;
     return (
-      <div style={{ ...pageStyle, background: C.darkBg, overflow: "hidden" }}>
+      <div data-capture style={{ ...pageStyle, background: C.darkBg, overflow: "hidden" }}>
         {/* 전면 카메라 배경 */}
         <video ref={camera.videoRef} autoPlay playsInline muted style={{
           position: "absolute", inset: 0,
@@ -110,16 +143,43 @@ export function ViewPage({ data }) {
         }} />
         {/* 셀카 효과 */}
         <FaceEffects active={camera.active} />
-        <div style={{ zIndex: 1, textAlign: "center", paddingTop: "25vh" }}>
+
+        {/* 셀카 버튼 */}
+        {camera.active && (
+          <button
+            onClick={handleCapture}
+            style={{
+              position: "absolute", bottom: 24, left: "50%",
+              transform: "translateX(-50%)", zIndex: 3,
+              width: 64, height: 64, borderRadius: "50%",
+              background: "rgba(255,255,255,0.2)",
+              backdropFilter: "blur(8px)",
+              border: "3px solid #fff",
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 28,
+              boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+            }}
+          >
+            📸
+          </button>
+        )}
+
+        {/* 케이크 + UI를 하단에 배치 */}
+        <div style={{
+          position: "absolute", bottom: camera.active ? 100 : 30, left: 0, right: 0,
+          zIndex: 1, textAlign: "center",
+          transition: "bottom 0.3s ease",
+        }}>
           <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
 
-          <div style={{ marginTop: 28, animation: "fadeIn 1s ease-out 0.5s both" }}>
-            <p style={{ fontFamily: FONT, fontSize: "clamp(18px, 5vw, 26px)", color: C.mustard }}>
+          <div style={{ marginTop: 12, animation: "fadeIn 1s ease-out 0.5s both" }}>
+            <p style={{ fontFamily: FONT, fontSize: "clamp(16px, 4.5vw, 22px)", color: C.mustard, margin: 0 }}>
               소원 빌고... 후~ 불어봐! 🌬️
             </p>
-            <div style={{ minHeight: 30, marginTop: 10 }}>
+            <div style={{ minHeight: 24, marginTop: 6 }}>
               {failCount > 0 && mic.blowIntensity < 0.1 && (
-                <p style={{ fontFamily: FONT, fontSize: "clamp(14px, 4vw, 18px)", color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
+                <p style={{ fontFamily: FONT, fontSize: "clamp(13px, 3.5vw, 16px)", color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
                   {failCount === 1 && "ㅋㅋ 폐활량 실화?"}
                   {failCount === 2 && "좀 더 세게 불어봐 ㅋㅋㅋ"}
                   {failCount >= 3 && "혹시 지금 무호흡? 😂"}
@@ -129,9 +189,9 @@ export function ViewPage({ data }) {
           </div>
 
           {/* 바람 세기 게이지 */}
-          <div style={{ marginTop: 18, width: 180, marginLeft: "auto", marginRight: "auto" }}>
-            <p style={{ fontFamily: FONT, fontSize: 12, color: C.mustard, marginBottom: 4, textAlign: "left" }}>바람 세기 ~</p>
-            <div style={{ width: "100%", height: 12, background: "rgba(255,255,255,0.15)", borderRadius: 6, border: `2px solid ${C.mustard}60`, overflow: "hidden" }}>
+          <div style={{ marginTop: 10, width: 160, marginLeft: "auto", marginRight: "auto" }}>
+            <p style={{ fontFamily: FONT, fontSize: 11, color: C.mustard, marginBottom: 3, textAlign: "left" }}>바람 세기 ~</p>
+            <div style={{ width: "100%", height: 10, background: "rgba(255,255,255,0.15)", borderRadius: 5, border: `2px solid ${C.mustard}60`, overflow: "hidden" }}>
               <div style={{
                 width: `${mic.blowIntensity * 100}%`, height: "100%",
                 background: mic.blowIntensity > 0.7 ? C.orange : mic.blowIntensity > 0.3 ? C.mustard : C.sage,
