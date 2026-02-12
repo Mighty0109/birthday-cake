@@ -58,7 +58,7 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlow
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <svg viewBox={`0 ${vTop} 300 ${vH}`} width="min(82vw, 310px)" style={{ display: "block", overflow: "visible" }}>
+      <svg data-cake viewBox={`0 ${vTop} 300 ${vH}`} width="min(82vw, 310px)" style={{ display: "block", overflow: "visible" }}>
         {/* 접시 그림자 */}
         <ellipse cx="150" cy="152" rx="155" ry="8" fill="rgba(0,0,0,0.12)" />
         {/* 접시 */}

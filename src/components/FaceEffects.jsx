@@ -514,7 +514,7 @@ export function FaceEffects({ active, faceBox }) {
       position: "absolute",
       top: "50%",
       left: "50%",
-      transform: "translate(-50%, -55%)",
+      transform: "translate(-50%, -50%)",
       width: "min(80vw, 340px)",
       height: "auto",
       zIndex: 1,

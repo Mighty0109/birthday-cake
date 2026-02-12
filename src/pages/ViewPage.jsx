@@ -57,14 +57,12 @@ export function ViewPage({ data }) {
     if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
 
-  // 📸 셀카 캡처
-  // 📸 셀카 캡처 (효과 포함 + iOS 호환)
+  // 📸 셀카 캡처 (효과 + 케이크 모두 포함, iOS 호환)
   const handleCapture = useCallback(() => {
     const container = document.querySelector("[data-capture]");
     if (!container) return;
     const video = container.querySelector("video");
     if (!video) return;
-    const svgEl = container.querySelector("svg[data-face-effect]");
 
     const cw = container.clientWidth;
     const ch = container.clientHeight;
@@ -92,49 +90,65 @@ export function ViewPage({ data }) {
       ctx.save();
       ctx.translate(cw, 0);
       ctx.scale(-1, 1);
-      ctx.globalAlpha = 0.5;
+      ctx.globalAlpha = 0.6;
       ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
       ctx.restore();
     }
 
     // ② 어두운 오버레이
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "rgba(20,15,10,0.4)";
+    ctx.fillStyle = "rgba(20,15,10,0.35)";
     ctx.fillRect(0, 0, cw, ch);
 
-    // ③ SVG 효과
-    const finalize = () => {
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-      setCapturedImg(dataUrl);
-    };
+    // ③ 모든 SVG 요소를 canvas에 그리기 (효과 + 케이크)
+    const allSvgs = container.querySelectorAll("svg[data-face-effect], svg[data-cake]");
+    const contRect = container.getBoundingClientRect();
 
-    if (svgEl) {
+    // SVG를 순서대로 비동기 그리기
+    const drawSvgs = (index) => {
+      if (index >= allSvgs.length) {
+        // ④ 하단 텍스트 오버레이
+        ctx.fillStyle = "rgba(20,15,10,0.6)";
+        ctx.fillRect(0, ch - 60, cw, 60);
+        ctx.font = "bold 16px 'Gaegu', cursive";
+        ctx.fillStyle = "#D4A535";
+        ctx.textAlign = "center";
+        ctx.fillText("🎂 생일 축하해! 후~ 🌬️", cw / 2, ch - 25);
+
+        // 완료 → 미리보기
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        setCapturedImg(dataUrl);
+        return;
+      }
+
+      const svgEl = allSvgs[index];
       const svgRect = svgEl.getBoundingClientRect();
-      const contRect = container.getBoundingClientRect();
       const ex = svgRect.left - contRect.left;
       const ey = svgRect.top - contRect.top;
       const ew = svgRect.width;
       const eh = svgRect.height;
 
+      // SVG 클론 + 직렬화
       const clone = svgEl.cloneNode(true);
       clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      const svgData = new XMLSerializer().serializeToString(clone);
-      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
+      // 인라인 스타일이 없는 요소도 렌더되도록 viewBox 유지
+      const svgStr = new XMLSerializer().serializeToString(clone);
+      const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => {
         ctx.drawImage(img, ex, ey, ew, eh);
         URL.revokeObjectURL(url);
-        finalize();
+        drawSvgs(index + 1);
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
-        finalize();
+        drawSvgs(index + 1);
       };
       img.src = url;
-    } else {
-      finalize();
-    }
+    };
+
+    drawSvgs(0);
   }, []);
 
   // ─── INTRO ───
