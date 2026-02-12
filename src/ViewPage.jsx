@@ -52,29 +52,27 @@ export function ViewPage({ data }) {
   });
 
   const handleIntroTap = async () => {
-    await requestPermission();
     let micOk = false;
     let gotVideo = false;
 
-    // 카메라만 먼저 요청
+    // ① 카메라+마이크 먼저 (유저 제스처 필요 → 최우선)
     try {
-      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      mainStreamRef.current = videoStream;
-      gotVideo = true;
-      camera.attach(videoStream);
-    } catch {}
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      mainStreamRef.current = stream;
+      gotVideo = stream.getVideoTracks().length > 0;
+      if (gotVideo) camera.attach(stream);
+      micOk = await mic.start(stream);
+    } catch {
+      // video 실패 → audio만 재시도
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mainStreamRef.current = stream;
+        micOk = await mic.start(stream);
+      } catch {}
+    }
 
-    // 마이크 별도 요청
-    try {
-      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // 카메라 스트림이 있으면 오디오 트랙 추가
-      if (mainStreamRef.current) {
-        audioStream.getAudioTracks().forEach((t) => mainStreamRef.current.addTrack(t));
-      } else {
-        mainStreamRef.current = audioStream;
-      }
-      micOk = await mic.start(mainStreamRef.current);
-    } catch {}
+    // ② 자이로스코프는 나중에 (실패해도 OK, 기울기 효과만 안 됨)
+    try { await requestPermission(); } catch {}
 
     setHasCam(gotVideo);
     setPhase("lit");
