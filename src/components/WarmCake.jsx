@@ -13,16 +13,17 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlow
   const numCandles = Math.min(age, 25);
   const [showSmoke, setShowSmoke] = useState(false);
 
-  // 연기: justBlownOut이 true면 5초간 표시
+  // 연기: 불고 있을 때(blowIntensity > 0.3) 또는 끈 직후(justBlownOut)
+  const isBlowing = blowIntensity > 0.3;
   useEffect(() => {
     if (justBlownOut) {
       setShowSmoke(true);
       const t = setTimeout(() => setShowSmoke(false), 5000);
       return () => clearTimeout(t);
-    } else {
-      setShowSmoke(false);
     }
   }, [justBlownOut]);
+
+  const smokeVisible = showSmoke || isBlowing;
 
   // 초 위치 계산
   const candlePositions = [];
@@ -123,7 +124,7 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlow
                 stroke={C.ink} strokeWidth="1" strokeLinecap="round"
                 transform={`rotate(${lean}, ${pos.x}, ${baseY})`} />
               <SvgFlame cx={pos.x} cy={candleTop - 3} lit={candlesLit} tiltX={tiltX} blowIntensity={blowIntensity} delay={i} />
-              {showSmoke && (
+              {smokeVisible && (
                 <SvgSmoke cx={pos.x} cy={candleTop - 5} delay={i * 0.15} age={age} tiltX={tiltX} />
               )}
             </g>

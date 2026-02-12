@@ -92,9 +92,15 @@ export function ViewPage({ data }) {
       ctx.restore();
     }
 
-    // ② 어두운 오버레이
+    // ② 어두운 오버레이 (radial-gradient 재현)
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "rgba(20,15,10,0.35)";
+    const grad = ctx.createRadialGradient(
+      cw * 0.5, ch * 0.7, 0,
+      cw * 0.5, ch * 0.7, Math.max(cw, ch) * 0.6
+    );
+    grad.addColorStop(0, "rgba(200,120,40,0.12)");
+    grad.addColorStop(1, "rgba(30,20,15,0.75)");
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, cw, ch);
 
     // ③ 케이크 SVG 캡처
@@ -198,7 +204,7 @@ export function ViewPage({ data }) {
         {/* 케이크 - 하단에서 살짝 위 */}
         <div style={{
           position: "absolute", bottom: 80, left: 0, right: 0,
-          zIndex: 1, textAlign: "center",
+          zIndex: 1, textAlign: "center", overflow: "visible",
         }}>
           <div style={{ transform: "scale(0.65)", transformOrigin: "center bottom" }}>
             <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
