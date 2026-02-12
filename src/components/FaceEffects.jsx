@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { C, FONT } from "../constants/theme";
 
 // ============================================================
@@ -466,21 +466,6 @@ const EFFECTS = [
 
 export function FaceEffects({ active, faceBox }) {
   const [effectIdx, setEffectIdx] = useState(() => Math.floor(Math.random() * EFFECTS.length));
-  const [dims, setDims] = useState({ w: 300, h: 600, sw: 375, sh: 700 });
-
-  // 화면 크기를 px로 직접 측정
-  useEffect(() => {
-    const update = () => {
-      const sw = window.innerWidth;
-      const sh = window.innerHeight;
-      const w = Math.min(sw * 0.8, 320);
-      const h = w * (400 / 300); // viewBox 비율 유지
-      setDims({ w, h, sw, sh });
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
 
   const randomize = useCallback(() => {
     setEffectIdx((prev) => {
@@ -494,10 +479,6 @@ export function FaceEffects({ active, faceBox }) {
 
   const effect = EFFECTS[effectIdx];
   const hasTracking = faceBox && faceBox.w > 0.03;
-
-  // iOS fallback: 모든 좌표를 px로 직접 계산
-  const fallbackLeft = (dims.sw - dims.w) / 2;
-  const fallbackTop = (dims.sh - dims.h) / 2 - dims.h * 0.05;
 
   return (
     <>
@@ -523,15 +504,26 @@ export function FaceEffects({ active, faceBox }) {
           );
         })()
       ) : (
+        /*
+         * iOS fallback: position 포기!
+         * 비디오와 동일하게 absolute inset:0 전체화면 SVG.
+         * viewBox를 확장해서 효과가 화면 중앙~얼굴 위치에 오도록.
+         *
+         * 효과들은 원본 viewBox(300x400) 내 y=0~250에 분포.
+         * 눈 위치 약 y=170.
+         * viewBox를 "0 -150 300 700"으로 확장 →
+         *   눈 위치 = (170+150)/700 = 45.7% 지점 (화면 중앙 근처)
+         */
         <svg
           data-face-effect
-          viewBox="0 0 300 400"
+          viewBox="0 -150 300 700"
+          preserveAspectRatio="xMidYMid meet"
           style={{
-            position: "fixed",
-            left: fallbackLeft + "px",
-            top: fallbackTop + "px",
-            width: dims.w + "px",
-            height: dims.h + "px",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
             zIndex: 1,
             pointerEvents: "none",
             filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
