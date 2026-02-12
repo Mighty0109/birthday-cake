@@ -507,15 +507,15 @@ export function FaceEffects({ active, faceBox }) {
           {effect.render()}
         </svg>
       ) : (
-        /* iOS fallback: div wrapper로 강제 배치 */
+        /* iOS fallback: position:fixed로 부모 영향 완전 차단 */
         <div style={{
-          position: "absolute",
-          top: "8%",
+          position: "fixed",
+          top: "12vh",
           left: "50%",
           transform: "translateX(-50%)",
           width: "75vw",
           maxWidth: 300,
-          height: "60vh",
+          height: "55vh",
           zIndex: 1,
           pointerEvents: "none",
         }}>
@@ -526,6 +526,7 @@ export function FaceEffects({ active, faceBox }) {
             style={{
               width: "100%",
               height: "100%",
+              display: "block",
               filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
             }}
           >
