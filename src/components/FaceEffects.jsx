@@ -478,60 +478,61 @@ export function FaceEffects({ active, faceBox }) {
   if (!active) return null;
 
   const effect = EFFECTS[effectIdx];
+  const hasTracking = faceBox && faceBox.w > 0.03;
 
-  // ─── SVG 위치 계산 ───
-  // SVG viewBox "0 0 300 400" 기준: 얼굴 중심 약 (150, 170), 얼굴 폭 약 120px
-  let svgStyle;
-
-  if (faceBox && faceBox.w > 0.03) {
-    // ✅ FaceDetector 감지됨 (Android Chrome)
-    // 감지된 얼굴 크기에 맞게 SVG 스케일링
-    const faceScale = faceBox.w * 2.5; // 얼굴 너비 → SVG 전체 너비 비율
-    const svgW = faceScale * 100; // %
-
-    // 감지된 얼굴 중심
+  // ─── Android (FaceDetector 트래킹) ───
+  let trackingStyle = null;
+  if (hasTracking) {
+    const faceScale = faceBox.w * 2.5;
+    const svgW = faceScale * 100;
     const fcx = (faceBox.x + faceBox.w / 2) * 100;
     const fcy = (faceBox.y + faceBox.h / 2) * 100;
-
-    // SVG 내 얼굴 중심 비율 (150/300=0.5, 170/400=0.425)
-    const svgFcxRatio = 0.5;
-    const svgFcyRatio = 0.425;
-
-    svgStyle = {
+    trackingStyle = {
       position: "absolute",
-      left: `${fcx - svgW * svgFcxRatio}%`,
-      top: `${fcy - svgW * (400 / 300) * svgFcyRatio}%`,
+      left: `${fcx - svgW * 0.5}%`,
+      top: `${fcy - svgW * (400 / 300) * 0.425}%`,
       width: `${svgW}%`,
       zIndex: 1,
       pointerEvents: "none",
       filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
       transition: "left 0.1s linear, top 0.1s linear, width 0.15s linear",
     };
-  } else {
-    // 🔄 Fallback (iOS Safari 등 FaceDetector 미지원)
-    // 얼굴은 셀카 화면의 약 35~50% 지점에 위치
-    // SVG viewBox(300x400)에서 얼굴 중심 = y170 = 42.5%
-    // → SVG top을 15%에 놓으면 얼굴중심이 15% + 55vh*0.425 ≈ 38% 정도
-    svgStyle = {
-      position: "absolute",
-      top: "15%",
-      left: "50%",
-      width: "75vw",
-      maxWidth: 300,
-      height: "55vh",
-      transform: "translateX(-50%)",
-      zIndex: 1,
-      pointerEvents: "none",
-      filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-    };
   }
 
   return (
     <>
       {/* 효과 오버레이 */}
-      <svg data-face-effect viewBox="0 0 300 400" style={svgStyle}>
-        {effect.render()}
-      </svg>
+      {hasTracking ? (
+        <svg data-face-effect viewBox="0 0 300 400" style={trackingStyle}>
+          {effect.render()}
+        </svg>
+      ) : (
+        /* iOS fallback: div wrapper로 강제 배치 */
+        <div style={{
+          position: "absolute",
+          top: "8%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "75vw",
+          maxWidth: 300,
+          height: "60vh",
+          zIndex: 1,
+          pointerEvents: "none",
+        }}>
+          <svg
+            data-face-effect
+            viewBox="0 0 300 400"
+            preserveAspectRatio="xMidYMid meet"
+            style={{
+              width: "100%",
+              height: "100%",
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+            }}
+          >
+            {effect.render()}
+          </svg>
+        </div>
+      )}
 
       {/* 랜덤 버튼 */}
       <button
