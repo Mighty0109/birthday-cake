@@ -25,6 +25,7 @@ export function ViewPage({ data }) {
   const [failCount, setFailCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [justBlownOut, setJustBlownOut] = useState(false);
+  const [capturedImg, setCapturedImg] = useState(null); // 셀카 미리보기
 
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
@@ -57,27 +58,83 @@ export function ViewPage({ data }) {
   };
 
   // 📸 셀카 캡처
+  // 📸 셀카 캡처 (효과 포함 + iOS 호환)
   const handleCapture = useCallback(() => {
-    const video = document.querySelector("[data-capture] video");
+    const container = document.querySelector("[data-capture]");
+    if (!container) return;
+    const video = container.querySelector("video");
     if (!video) return;
+    const svgEl = container.querySelector("svg[data-face-effect]");
+
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const dpr = 2;
     const canvas = document.createElement("canvas");
-    const w = video.videoWidth || 720;
-    const h = video.videoHeight || 1280;
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = cw * dpr;
+    canvas.height = ch * dpr;
     const ctx = canvas.getContext("2d");
-    ctx.translate(w, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, w, h);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "birthday-selfie-" + Date.now() + ".jpg";
-      a.click();
-      URL.revokeObjectURL(url);
-    }, "image/jpeg", 0.9);
+    ctx.scale(dpr, dpr);
+
+    // ① 비디오 (object-fit:cover + mirror)
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (vw && vh) {
+      const videoAR = vw / vh;
+      const displayAR = cw / ch;
+      let sw, sh, sx, sy;
+      if (videoAR > displayAR) {
+        sh = vh; sw = vh * displayAR;
+        sx = (vw - sw) / 2; sy = 0;
+      } else {
+        sw = vw; sh = vw / displayAR;
+        sx = 0; sy = (vh - sh) / 2;
+      }
+      ctx.save();
+      ctx.translate(cw, 0);
+      ctx.scale(-1, 1);
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+      ctx.restore();
+    }
+
+    // ② 어두운 오버레이
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(20,15,10,0.4)";
+    ctx.fillRect(0, 0, cw, ch);
+
+    // ③ SVG 효과
+    const finalize = () => {
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      setCapturedImg(dataUrl);
+    };
+
+    if (svgEl) {
+      const svgRect = svgEl.getBoundingClientRect();
+      const contRect = container.getBoundingClientRect();
+      const ex = svgRect.left - contRect.left;
+      const ey = svgRect.top - contRect.top;
+      const ew = svgRect.width;
+      const eh = svgRect.height;
+
+      const clone = svgEl.cloneNode(true);
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const svgData = new XMLSerializer().serializeToString(clone);
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, ex, ey, ew, eh);
+        URL.revokeObjectURL(url);
+        finalize();
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        finalize();
+      };
+      img.src = url;
+    } else {
+      finalize();
+    }
   }, []);
 
   // ─── INTRO ───
@@ -184,6 +241,45 @@ export function ViewPage({ data }) {
             소원 빌고... 후~ 불어봐! 🌬️
           </p>
         </div>
+
+        {/* 📷 셀카 미리보기 모달 */}
+        {capturedImg && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 10,
+            background: "rgba(0,0,0,0.85)",
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            padding: 20,
+          }}>
+            <img
+              src={capturedImg}
+              alt="셀카"
+              style={{
+                maxWidth: "90%", maxHeight: "65vh",
+                borderRadius: 12, border: "3px solid #fff",
+                boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+              }}
+            />
+            <p style={{
+              fontFamily: FONT, fontSize: 16, color: C.cream,
+              marginTop: 16, textAlign: "center",
+            }}>
+              📱 이미지를 <b>길게 눌러</b> 저장하세요!
+            </p>
+            <button
+              onClick={() => setCapturedImg(null)}
+              style={{
+                marginTop: 12, padding: "10px 28px",
+                background: C.mustard, border: "none",
+                borderRadius: 20, fontFamily: FONT,
+                fontSize: 15, fontWeight: 700,
+                color: "#fff", cursor: "pointer",
+              }}
+            >
+              ✕ 닫기
+            </button>
+          </div>
+        )}
       </div>
     );
   }
