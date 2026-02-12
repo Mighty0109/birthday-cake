@@ -175,14 +175,15 @@ export function ViewPage({ data }) {
   if (phase === "lit") {
     const glow = 1 - mic.blowIntensity * 0.7;
     return (
-      <div data-capture style={{ ...pageStyle, background: C.darkBg, overflow: "hidden" }}>
+      <div data-capture style={{ ...pageStyle, background: C.darkBg, overflow: "visible" }}>
         {/* 전면 카메라 */}
-        <video ref={camera.videoRef} autoPlay playsInline muted style={{
-          position: "absolute", inset: 0,
-          width: "100%", height: "100%",
-          objectFit: "cover", transform: "scaleX(-1)",
-          zIndex: 0, opacity: 0.5,
-        }} />
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
+          <video ref={camera.videoRef} autoPlay playsInline muted style={{
+            width: "100%", height: "100%",
+            objectFit: "cover", transform: "scaleX(-1)",
+            opacity: 0.5,
+          }} />
+        </div>
         {/* 어두운 오버레이 */}
         <div style={{
           position: "absolute", inset: 0, zIndex: 0,
