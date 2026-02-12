@@ -1,56 +1,30 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useCallback } from "react";
 
 // ============================================================
-// 📷 전면 카메라 훅
+// 📷 전면 카메라 훅 (스트림은 외부에서 관리)
 // ============================================================
 
 export function useCamera() {
-  const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const [active, setActive] = useState(false);
+  const videoElRef = useRef(null);
 
-  // 스트림 획득 (유저 제스처 안에서 호출)
-  const start = useCallback(async (existingStream) => {
-    try {
-      const stream = existingStream || await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-      });
-      streamRef.current = stream;
-      setActive(true);
-      // video 엘리먼트가 이미 있으면 바로 연결
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(() => {});
-      }
-    } catch {
-      setActive(false);
+  // 스트림 저장 + 이미 마운트된 video가 있으면 연결
+  const attach = useCallback((stream) => {
+    streamRef.current = stream;
+    if (videoElRef.current) {
+      videoElRef.current.srcObject = stream;
+      videoElRef.current.play().catch(() => {});
     }
   }, []);
 
-  // video ref가 나중에 마운트되면 스트림 연결
-  useEffect(() => {
-    if (active && streamRef.current && videoRef.current && !videoRef.current.srcObject) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
+  // callback ref: video 엘리먼트가 마운트/언마운트될 때 호출
+  const videoRef = useCallback((el) => {
+    videoElRef.current = el;
+    if (el && streamRef.current && !el.srcObject) {
+      el.srcObject = streamRef.current;
+      el.play().catch(() => {});
     }
-  });
-
-  const stop = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setActive(false);
   }, []);
 
-  // 컴포넌트 언마운트 시 카메라 정리
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, []);
-
-  return { videoRef, active, start, stop };
+  return { videoRef, attach };
 }

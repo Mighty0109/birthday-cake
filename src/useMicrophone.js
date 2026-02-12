@@ -38,7 +38,11 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
 
   const stop = useCallback(() => {
     if (animRef.current) cancelAnimationFrame(animRef.current);
-    if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+    // 스트림 정리는 ViewPage에서 담당 (공유 스트림이므로 여기서 stop 안 함)
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
+    }
   }, []);
 
   const startDetection = useCallback(() => {
@@ -58,7 +62,6 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
         setBlowIntensity(Math.min(1, blowAccRef.current));
         if (blowAccRef.current >= 1) {
           if (animRef.current) cancelAnimationFrame(animRef.current);
-          if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
           onDoneRef.current();
           return;
         }
