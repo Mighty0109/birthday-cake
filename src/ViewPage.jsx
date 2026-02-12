@@ -56,24 +56,25 @@ export function ViewPage({ data }) {
     let micOk = false;
     let gotVideo = false;
 
-    // 1차: audio+video 동시 요청
+    // 카메라만 먼저 요청
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true,
-      });
-      mainStreamRef.current = stream;
-      gotVideo = stream.getVideoTracks().length > 0;
-      micOk = await mic.start(stream);
-      if (gotVideo) camera.attach(stream);
-    } catch (e1) {
-      // 2차: audio만 요청
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mainStreamRef.current = stream;
-        micOk = await mic.start(stream);
-      } catch {}
-    }
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      mainStreamRef.current = videoStream;
+      gotVideo = true;
+      camera.attach(videoStream);
+    } catch {}
+
+    // 마이크 별도 요청
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // 카메라 스트림이 있으면 오디오 트랙 추가
+      if (mainStreamRef.current) {
+        audioStream.getAudioTracks().forEach((t) => mainStreamRef.current.addTrack(t));
+      } else {
+        mainStreamRef.current = audioStream;
+      }
+      micOk = await mic.start(mainStreamRef.current);
+    } catch {}
 
     setHasCam(gotVideo);
     setPhase("lit");
