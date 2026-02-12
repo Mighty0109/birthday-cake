@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 // ============================================================
 // 🎤 마이크 + 바람 감지 훅
@@ -11,6 +11,12 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
   const streamRef = useRef(null);
   const blowAccRef = useRef(0);
   const animRef = useRef(null);
+
+  // 항상 최신 값을 참조하기 위한 ref (stale closure 방지)
+  const onDoneRef = useRef(onDone);
+  const failCountRef = useRef(failCount);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+  useEffect(() => { failCountRef.current = failCount; }, [failCount]);
 
   const start = useCallback(async () => {
     try {
@@ -51,23 +57,22 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
         blowAccRef.current += avg * 0.08;
         setBlowIntensity(Math.min(1, blowAccRef.current));
         if (blowAccRef.current >= 1) {
-          // 자동 정지 후 콜백
           if (animRef.current) cancelAnimationFrame(animRef.current);
           if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-          onDone();
+          onDoneRef.current();
           return;
         }
       } else {
         blowAccRef.current = Math.max(0, blowAccRef.current - 0.02);
         setBlowIntensity(Math.max(0, blowAccRef.current));
-        if (blowAccRef.current <= 0 && failCount < 3 && Math.random() < 0.005) {
+        if (blowAccRef.current <= 0 && failCountRef.current < 3 && Math.random() < 0.005) {
           setFailCount((f) => f + 1);
         }
       }
       animRef.current = requestAnimationFrame(detect);
     };
     detect();
-  }, [onDone, failCount, setFailCount]);
+  }, [setFailCount]);
 
   return { blowIntensity, start, startDetection, stop };
 }

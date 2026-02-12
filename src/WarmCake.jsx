@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { C, FONT } from "../constants/theme";
 import { getCakeTheme } from "../utils/cakeTheme";
 import { SvgFlame } from "./SvgFlame";
@@ -8,27 +8,21 @@ import { SvgSmoke } from "./SvgSmoke";
 // 🎂 올인원 케이크 SVG
 // ============================================================
 
-export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity }) {
+export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlownOut = false }) {
   const theme = getCakeTheme(age);
   const numCandles = Math.min(age, 25);
   const [showSmoke, setShowSmoke] = useState(false);
-  const wasLitRef = useRef(candlesLit);
 
+  // 연기: justBlownOut이 true로 넘어오면 1.5초간 표시
   useEffect(() => {
-    // 초가 켜져있을 때는 연기 X, 꺼지는 순간 연기 ON → 1.5초 후 OFF
-    if (candlesLit) {
-      setShowSmoke(false);
-      wasLitRef.current = true;
-    }
-    if (!candlesLit && wasLitRef.current) {
+    if (justBlownOut) {
       setShowSmoke(true);
-      const t = setTimeout(() => {
-        setShowSmoke(false);
-        wasLitRef.current = false;
-      }, 1500);
+      const t = setTimeout(() => setShowSmoke(false), 1500);
       return () => clearTimeout(t);
+    } else {
+      setShowSmoke(false);
     }
-  }, [candlesLit]);
+  }, [justBlownOut]);
 
   // 초 위치 계산
   const candlePositions = [];

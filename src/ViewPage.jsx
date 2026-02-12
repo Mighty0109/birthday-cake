@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { C, FONT, pageStyle, warmBtn } from "../constants/theme";
 import { getRoast, getSmokeComment } from "../constants/roasts";
 import { getCakeTheme } from "../utils/cakeTheme";
@@ -23,20 +23,23 @@ export function ViewPage({ data }) {
   const [roast, setRoast] = useState("");
   const [failCount, setFailCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [justBlownOut, setJustBlownOut] = useState(false);
 
   // 커스텀 훅
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
+  const cameraStopRef = useRef(camera.stop);
+  cameraStopRef.current = camera.stop;
 
   const handleDone = useCallback(() => {
-    camera.stop();
+    cameraStopRef.current();
     setPhase("done");
+    setJustBlownOut(true);
     setRoast(getRoast(age));
     setShowConfetti(true);
     if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
     setTimeout(() => setShowConfetti(false), 5000);
-  // camera.stop은 useCallback([])이라 stable ref
-  }, [age, camera.stop]);
+  }, [age]);
 
   const mic = useMicrophone({
     onDone: handleDone,
@@ -46,11 +49,11 @@ export function ViewPage({ data }) {
 
   const handleIntroTap = async () => {
     await requestPermission();
-    const ok = await mic.start();
+    // iOS: 순차적으로 요청해야 둘 다 권한 팝업이 뜸
+    const micOk = await mic.start();
+    await camera.start();
     setPhase("lit");
-    // video 엘리먼트가 렌더된 후 카메라 연결
-    setTimeout(() => camera.start(), 100);
-    if (ok) setTimeout(() => mic.startDetection(), 500);
+    if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
 
   // ─── INTRO ───
@@ -163,7 +166,7 @@ export function ViewPage({ data }) {
           {name}
         </p>
 
-        <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} />
+        <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} justBlownOut={justBlownOut} />
 
         {/* B급 연기 코멘트 */}
         <p style={{
