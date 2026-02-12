@@ -509,26 +509,38 @@ export function FaceEffects({ active, faceBox }) {
     };
   } else {
     // 🔄 Fallback (iOS Safari 등 FaceDetector 미지원)
-    // 화면 가운데에 배치
     svgStyle = {
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      width: "min(80vw, 340px)",
+      width: "min(75vw, 300px)",
       height: "auto",
-      zIndex: 1,
       pointerEvents: "none",
       filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
     };
   }
 
+  // fallback일 때 감싸는 wrapper로 확실한 중앙 배치
+  const needsWrapper = !(faceBox && faceBox.w > 0.03);
+  const wrapperStyle = needsWrapper ? {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 80,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+    pointerEvents: "none",
+  } : null;
+
+  const svgElement = (
+    <svg data-face-effect viewBox="0 0 300 400" style={svgStyle}>
+      {effect.render()}
+    </svg>
+  );
+
   return (
     <>
       {/* 효과 오버레이 */}
-      <svg data-face-effect viewBox="0 0 300 400" style={svgStyle}>
-        {effect.render()}
-      </svg>
+      {needsWrapper ? (
+        <div style={wrapperStyle}>{svgElement}</div>
+      ) : svgElement}
 
       {/* 랜덤 버튼 */}
       <button
