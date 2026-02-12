@@ -208,7 +208,7 @@ export function ViewPage({ data }) {
           position: "absolute", bottom: 80, left: 0, right: 0,
           zIndex: 1, textAlign: "center", overflow: "visible",
         }}>
-          <div style={{ transform: "scale(0.65)", transformOrigin: "center bottom" }}>
+          <div style={{ transform: "scale(0.78)", transformOrigin: "center bottom" }}>
             <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
           </div>
         </div>
