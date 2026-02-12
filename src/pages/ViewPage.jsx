@@ -5,6 +5,7 @@ import { getCakeTheme } from "../utils/cakeTheme";
 import { useGyroscope } from "../hooks/useGyroscope";
 import { useMicrophone } from "../hooks/useMicrophone";
 import { useCamera } from "../hooks/useCamera";
+import { useFaceDetection } from "../hooks/useFaceDetection";
 import { PaperGrain } from "../components/PaperGrain";
 import { HandBox } from "../components/HandBox";
 import { Starburst } from "../components/Starburst";
@@ -28,6 +29,7 @@ export function ViewPage({ data }) {
   // 커스텀 훅 (각자 독립적으로 스트림 관리)
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
+  const { faceBox } = useFaceDetection(camera.videoElRef, camera.active);
   const cameraStopRef = useRef(camera.stop);
   cameraStopRef.current = camera.stop;
 
@@ -142,7 +144,7 @@ export function ViewPage({ data }) {
           background: `radial-gradient(ellipse at 50% 60%, rgba(200,120,40,${0.15 * glow}) 0%, rgba(30,20,15,0.7) 60%)`,
         }} />
         {/* 셀카 효과 */}
-        <FaceEffects active={camera.active} />
+        <FaceEffects active={camera.active} faceBox={faceBox} />
 
         {/* 셀카 버튼 */}
         {camera.active && (

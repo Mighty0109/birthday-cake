@@ -44,5 +44,5 @@ export function useCamera() {
     }
   }, []);
 
-  return { videoRef, active, start, stop };
+  return { videoRef, videoElRef, active, start, stop };
 }

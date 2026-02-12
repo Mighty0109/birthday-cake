@@ -464,7 +464,7 @@ const EFFECTS = [
   },
 ];
 
-export function FaceEffects({ active }) {
+export function FaceEffects({ active, faceBox }) {
   const [effectIdx, setEffectIdx] = useState(() => Math.floor(Math.random() * EFFECTS.length));
 
   const randomize = useCallback(() => {
@@ -479,23 +479,58 @@ export function FaceEffects({ active }) {
 
   const effect = EFFECTS[effectIdx];
 
+  // SVG viewBox 기준 얼굴 중심 / 비율
+  const SVG_FACE_CX = 150;  // viewBox 내 얼굴 중심 X
+  const SVG_FACE_CY = 170;  // viewBox 내 얼굴 중심 Y (눈 위치)
+  const SVG_FACE_W = 120;   // viewBox 내 얼굴 너비
+  const SVG_VB_W = 300;
+  const SVG_VB_H = 400;
+
+  let svgStyle;
+
+  if (faceBox) {
+    // 얼굴 감지됨 → 동적 위치/크기
+    const faceCX = (faceBox.x + faceBox.w / 2) * 100; // %
+    const faceCY = (faceBox.y + faceBox.h / 2) * 100; // %
+
+    // SVG 전체 너비 = 감지된 얼굴 너비 / (SVG 얼굴 비율)
+    const svgWidthPct = (faceBox.w / (SVG_FACE_W / SVG_VB_W)) * 100;
+    const svgHeightPct = svgWidthPct * (SVG_VB_H / SVG_VB_W);
+
+    // SVG 내 얼굴 중심이 감지된 얼굴 중심과 일치하도록 오프셋
+    const offsetXPct = (SVG_FACE_CX / SVG_VB_W) * svgWidthPct;
+    const offsetYPct = (SVG_FACE_CY / SVG_VB_H) * svgHeightPct;
+
+    svgStyle = {
+      position: "absolute",
+      left: `calc(${faceCX}% - ${offsetXPct}%)`,
+      top: `calc(${faceCY}% - ${offsetYPct}%)`,
+      width: `${svgWidthPct}%`,
+      height: `${svgHeightPct}%`,
+      zIndex: 1,
+      pointerEvents: "none",
+      filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+      transition: "left 0.08s linear, top 0.08s linear, width 0.08s linear",
+    };
+  } else {
+    // 얼굴 감지 미지원 → 고정 위치 (fallback)
+    svgStyle = {
+      position: "absolute",
+      top: "5%",
+      left: "50%",
+      transform: "translateX(-50%) scaleX(-1)",
+      width: "min(70vw, 300px)",
+      height: "auto",
+      zIndex: 1,
+      pointerEvents: "none",
+      filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+    };
+  }
+
   return (
     <>
       {/* 효과 오버레이 */}
-      <svg
-        viewBox="0 0 300 400"
-        style={{
-          position: "absolute",
-          top: "5%",
-          left: "50%",
-          transform: "translateX(-50%) scaleX(-1)",
-          width: "min(70vw, 300px)",
-          height: "auto",
-          zIndex: 1,
-          pointerEvents: "none",
-          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-        }}
-      >
+      <svg viewBox="0 0 300 400" style={svgStyle}>
         {effect.render()}
       </svg>
 
