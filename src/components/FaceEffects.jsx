@@ -507,15 +507,10 @@ export function FaceEffects({ active, faceBox }) {
           {effect.render()}
         </svg>
       ) : (
-        /* iOS fallback: position:fixed로 부모 영향 완전 차단 */
+        /* iOS fallback: 전체 화면 = SVG viewBox 비율로 효과가 얼굴 높이에 자연 배치 */
         <div style={{
           position: "fixed",
-          top: "12vh",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "75vw",
-          maxWidth: 300,
-          height: "55vh",
+          top: 0, left: 0, right: 0, bottom: 0,
           zIndex: 1,
           pointerEvents: "none",
         }}>
