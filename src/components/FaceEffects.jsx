@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { C, FONT } from "../constants/theme";
 
 // ============================================================
@@ -466,6 +466,15 @@ const EFFECTS = [
 
 export function FaceEffects({ active, faceBox }) {
   const [effectIdx, setEffectIdx] = useState(() => Math.floor(Math.random() * EFFECTS.length));
+  const [screenH, setScreenH] = useState(0);
+
+  // iOS에서 정확한 화면 높이 확보
+  useEffect(() => {
+    const update = () => setScreenH(window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const randomize = useCallback(() => {
     setEffectIdx((prev) => {
@@ -480,54 +489,50 @@ export function FaceEffects({ active, faceBox }) {
   const effect = EFFECTS[effectIdx];
   const hasTracking = faceBox && faceBox.w > 0.03;
 
-  // ─── Android (FaceDetector 트래킹) ───
-  let trackingStyle = null;
-  if (hasTracking) {
-    const faceScale = faceBox.w * 2.5;
-    const svgW = faceScale * 100;
-    const fcx = (faceBox.x + faceBox.w / 2) * 100;
-    const fcy = (faceBox.y + faceBox.h / 2) * 100;
-    trackingStyle = {
-      position: "absolute",
-      left: `${fcx - svgW * 0.5}%`,
-      top: `${fcy - svgW * (400 / 300) * 0.425}%`,
-      width: `${svgW}%`,
-      zIndex: 1,
-      pointerEvents: "none",
-      filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-      transition: "left 0.1s linear, top 0.1s linear, width 0.15s linear",
-    };
-  }
-
   return (
     <>
-      {/* 효과 오버레이 */}
       {hasTracking ? (
-        <svg data-face-effect viewBox="0 0 300 400" style={trackingStyle}>
+        /* Android: FaceDetector 트래킹 */
+        (() => {
+          const faceScale = faceBox.w * 2.5;
+          const svgW = faceScale * 100;
+          const fcx = (faceBox.x + faceBox.w / 2) * 100;
+          const fcy = (faceBox.y + faceBox.h / 2) * 100;
+          return (
+            <svg data-face-effect viewBox="0 0 300 400" style={{
+              position: "absolute",
+              left: `${fcx - svgW * 0.5}%`,
+              top: `${fcy - svgW * (400 / 300) * 0.425}%`,
+              width: `${svgW}%`,
+              zIndex: 1,
+              pointerEvents: "none",
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+              transition: "left 0.1s linear, top 0.1s linear, width 0.15s linear",
+            }}>
+              {effect.render()}
+            </svg>
+          );
+        })()
+      ) : (
+        /* iOS fallback: JS로 계산한 px 값 직접 사용 */
+        <svg
+          data-face-effect
+          viewBox="0 0 300 400"
+          preserveAspectRatio="xMidYMid meet"
+          width={Math.min(window.innerWidth * 0.8, 320)}
+          height={screenH > 0 ? screenH * 0.65 : 500}
+          style={{
+            position: "fixed",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -55%)",
+            zIndex: 1,
+            pointerEvents: "none",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+          }}
+        >
           {effect.render()}
         </svg>
-      ) : (
-        /* iOS fallback: 전체 화면 = SVG viewBox 비율로 효과가 얼굴 높이에 자연 배치 */
-        <div style={{
-          position: "fixed",
-          top: 0, left: 0, right: 0, bottom: 0,
-          zIndex: 1,
-          pointerEvents: "none",
-        }}>
-          <svg
-            data-face-effect
-            viewBox="0 0 300 400"
-            preserveAspectRatio="xMidYMid meet"
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "block",
-              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-            }}
-          >
-            {effect.render()}
-          </svg>
-        </div>
       )}
 
       {/* 랜덤 버튼 */}
