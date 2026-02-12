@@ -13,8 +13,7 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlow
   const numCandles = Math.min(age, 25);
   const [showSmoke, setShowSmoke] = useState(false);
 
-  // 연기: 불고 있을 때(blowIntensity > 0.3) 또는 끈 직후(justBlownOut)
-  const isBlowing = blowIntensity > 0.3;
+  // 연기: 초가 켜져있으면 항상 + 끈 직후 5초
   useEffect(() => {
     if (justBlownOut) {
       setShowSmoke(true);
@@ -23,7 +22,7 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlow
     }
   }, [justBlownOut]);
 
-  const smokeVisible = showSmoke || isBlowing;
+  const smokeVisible = candlesLit || showSmoke;
 
   // 초 위치 계산
   const candlePositions = [];
