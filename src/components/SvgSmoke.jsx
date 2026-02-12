@@ -13,7 +13,7 @@ export function SvgSmoke({ cx, cy, delay = 0, age = 1, tiltX = 0 }) {
   useEffect(() => {
     const initPuffs = Array.from({ length: puffCount }, (_, p) => ({
       t: -(delay * 0.3 + p * 0.6),
-      dur: 3.0 + p * 0.8,
+      dur: 2.2 + p * 0.8,
       wobbleDir: p % 2 === 0 ? -1 : 1,
       wobbleAmt: 5 + p * 2.5,
       size: baseSize + p * 2,
