@@ -509,13 +509,13 @@ export function FaceEffects({ active, faceBox }) {
     };
   } else {
     // 🔄 Fallback (iOS Safari 등 FaceDetector 미지원)
-    // 셀카 기준 얼굴은 화면 상단 30~40% 영역에 위치
+    // 화면 가운데에 배치
     svgStyle = {
       position: "absolute",
-      top: "2%",
+      top: "50%",
       left: "50%",
-      transform: "translateX(-50%)",
-      width: "min(75vw, 320px)",
+      transform: "translate(-50%, -55%)",
+      width: "min(80vw, 340px)",
       height: "auto",
       zIndex: 1,
       pointerEvents: "none",
@@ -526,7 +526,7 @@ export function FaceEffects({ active, faceBox }) {
   return (
     <>
       {/* 효과 오버레이 */}
-      <svg viewBox="0 0 300 400" style={svgStyle}>
+      <svg data-face-effect viewBox="0 0 300 400" style={svgStyle}>
         {effect.render()}
       </svg>
 

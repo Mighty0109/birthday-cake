@@ -26,7 +26,6 @@ export function ViewPage({ data }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [justBlownOut, setJustBlownOut] = useState(false);
 
-  // 커스텀 훅
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
   const { faceBox } = useFaceDetection(camera.videoElRef, camera.active);
@@ -59,11 +58,8 @@ export function ViewPage({ data }) {
 
   // 📸 셀카 캡처
   const handleCapture = useCallback(() => {
-    const container = document.querySelector("[data-capture]");
-    if (!container) return;
-    const video = container.querySelector("video");
+    const video = document.querySelector("[data-capture] video");
     if (!video) return;
-
     const canvas = document.createElement("canvas");
     const w = video.videoWidth || 720;
     const h = video.videoHeight || 1280;
@@ -73,13 +69,12 @@ export function ViewPage({ data }) {
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, w, h);
-
     canvas.toBlob((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `birthday-selfie-${Date.now()}.jpg`;
+      a.download = "birthday-selfie-" + Date.now() + ".jpg";
       a.click();
       URL.revokeObjectURL(url);
     }, "image/jpeg", 0.9);
@@ -100,7 +95,7 @@ export function ViewPage({ data }) {
           </p>
           <div style={{
             display: "inline-block", padding: "10px 24px",
-            border: `2px dashed ${C.mustard}`, borderRadius: 24,
+            border: "2px dashed " + C.mustard, borderRadius: 24,
             animation: "pulse 1.5s ease-in-out infinite",
           }}>
             <span style={{ fontFamily: FONT, fontSize: 16, color: C.mustard, fontWeight: 700 }}>톡! 터치!</span>
@@ -118,73 +113,76 @@ export function ViewPage({ data }) {
     const glow = 1 - mic.blowIntensity * 0.7;
     return (
       <div data-capture style={{ ...pageStyle, background: C.darkBg, overflow: "hidden" }}>
-        {/* 전면 카메라 배경 */}
+        {/* 전면 카메라 */}
         <video ref={camera.videoRef} autoPlay playsInline muted style={{
           position: "absolute", inset: 0,
           width: "100%", height: "100%",
-          objectFit: "cover",
-          transform: "scaleX(-1)",
+          objectFit: "cover", transform: "scaleX(-1)",
           zIndex: 0, opacity: 0.5,
         }} />
         {/* 어두운 오버레이 */}
         <div style={{
           position: "absolute", inset: 0, zIndex: 0,
-          background: `radial-gradient(ellipse at 50% 70%, rgba(200,120,40,${0.15 * glow}) 0%, rgba(30,20,15,0.75) 60%)`,
+          background: "radial-gradient(ellipse at 50% 70%, rgba(200,120,40," + (0.15 * glow) + ") 0%, rgba(30,20,15,0.75) 60%)",
         }} />
 
         {/* 셀카 효과 (얼굴 트래킹) */}
         <FaceEffects active={camera.active} faceBox={faceBox} />
 
-        {/* 📸 셀카 버튼 - 우측 하단 */}
+        {/* 📸 셀카 버튼 */}
         {camera.active && (
           <button onClick={handleCapture} style={{
-            position: "absolute", bottom: 20, right: 20, zIndex: 3,
-            width: 52, height: 52, borderRadius: "50%",
+            position: "absolute", bottom: 16, right: 16, zIndex: 3,
+            width: 48, height: 48, borderRadius: "50%",
             background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)",
             border: "3px solid #fff", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+            fontSize: 22, boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
           }}>📸</button>
         )}
 
-        {/* 케이크 영역 - 화면 최하단에 고정 */}
+        {/* 케이크 - 하단에서 살짝 위 */}
+        <div style={{
+          position: "absolute", bottom: 80, left: 0, right: 0,
+          zIndex: 1, textAlign: "center",
+        }}>
+          <div style={{ transform: "scale(0.65)", transformOrigin: "center bottom" }}>
+            <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
+          </div>
+        </div>
+
+        {/* 하단 UI - 맨 아래 고정 */}
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
-          zIndex: 1, textAlign: "center",
-          padding: "0 0 16px 0",
-          background: "linear-gradient(transparent 0%, rgba(20,15,10,0.8) 40%)",
+          zIndex: 2, textAlign: "center",
+          padding: "12px 0 16px",
+          background: "linear-gradient(transparent, rgba(20,15,10,0.9) 40%)",
         }}>
           {/* 바람 세기 게이지 */}
-          <div style={{ width: 140, margin: "0 auto 8px auto" }}>
-            <p style={{ fontFamily: FONT, fontSize: 10, color: C.mustard, marginBottom: 2, textAlign: "left" }}>바람 세기 ~</p>
-            <div style={{ width: "100%", height: 8, background: "rgba(255,255,255,0.15)", borderRadius: 4, border: `1px solid ${C.mustard}60`, overflow: "hidden" }}>
+          <div style={{ width: 120, margin: "0 auto 6px" }}>
+            <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.15)", borderRadius: 3, overflow: "hidden" }}>
               <div style={{
-                width: `${mic.blowIntensity * 100}%`, height: "100%",
+                width: (mic.blowIntensity * 100) + "%", height: "100%",
                 background: mic.blowIntensity > 0.7 ? C.orange : mic.blowIntensity > 0.3 ? C.mustard : C.sage,
-                borderRadius: 4, transition: "width 0.1s, background 0.2s",
+                borderRadius: 3, transition: "width 0.1s",
               }} />
             </div>
           </div>
 
-          <p style={{ fontFamily: FONT, fontSize: "clamp(14px, 4vw, 18px)", color: C.mustard, margin: "0 0 6px 0" }}>
-            후~ 불어봐! 🌬️
-          </p>
-
-          {/* 촛불 케이크 (축소) */}
-          <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom" }}>
-            <WarmCake age={age} name={name} candlesLit={true} tiltX={tiltX} blowIntensity={mic.blowIntensity} />
-          </div>
-
           {/* 폐활량 디스 */}
-          <div style={{ minHeight: 20, marginTop: 2 }}>
+          <div style={{ minHeight: 18 }}>
             {failCount > 0 && mic.blowIntensity < 0.1 && (
-              <p style={{ fontFamily: FONT, fontSize: "clamp(12px, 3vw, 14px)", color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
+              <p style={{ fontFamily: FONT, fontSize: 12, color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
                 {failCount === 1 && "ㅋㅋ 폐활량 실화?"}
                 {failCount === 2 && "좀 더 세게 불어봐 ㅋㅋㅋ"}
                 {failCount >= 3 && "혹시 지금 무호흡? 😂"}
               </p>
             )}
           </div>
+
+          <p style={{ fontFamily: FONT, fontSize: "clamp(14px, 4vw, 18px)", color: C.mustard, margin: 0 }}>
+            소원 빌고... 후~ 불어봐! 🌬️
+          </p>
         </div>
       </div>
     );
@@ -193,20 +191,20 @@ export function ViewPage({ data }) {
   // ─── DONE ───
   const theme = getCakeTheme(age);
   return (
-    <div style={{ ...pageStyle, background: C.paper, overflow: "hidden" }}>
+    <div style={{ ...pageStyle, background: C.paper, overflow: "visible" }}>
       <PaperGrain />
       {showConfetti && <WarmConfetti />}
       <Starburst size={150} color={C.mustard} style={{ position: "absolute", top: -20, right: -30 }} />
       <Starburst size={100} color={C.dustyPink} style={{ position: "absolute", bottom: 30, left: -20 }} />
 
-      <div style={{ animation: "bounceIn 0.6s ease-out", textAlign: "center", zIndex: 1, width: "100%", maxWidth: 380 }}>
+      <div style={{ animation: "bounceIn 0.6s ease-out", textAlign: "center", zIndex: 1, width: "100%", maxWidth: 380, overflow: "visible" }}>
         <div style={{ fontSize: "clamp(40px, 12vw, 64px)", marginBottom: 8, animation: "tada 1s ease-out" }}>🎉</div>
 
         <div style={{
           display: "inline-block", padding: "8px 24px", marginBottom: 16,
-          border: `3px solid ${C.orange}`, borderRadius: "50%",
+          border: "3px solid " + C.orange, borderRadius: "50%",
           transform: "rotate(-4deg)",
-          boxShadow: `inset 0 0 0 2px ${C.orange}40`,
+          boxShadow: "inset 0 0 0 2px " + C.orange + "40",
         }}>
           <h2 style={{ fontFamily: FONT, fontSize: "clamp(18px, 5vw, 28px)", color: C.orange, margin: 0 }}>
             생일 축하해!
@@ -217,7 +215,10 @@ export function ViewPage({ data }) {
           {name}
         </p>
 
-        <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} justBlownOut={justBlownOut} />
+        {/* 케이크 + 연기 (overflow visible 필수!) */}
+        <div style={{ overflow: "visible", position: "relative" }}>
+          <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} justBlownOut={justBlownOut} />
+        </div>
 
         {/* B급 연기 코멘트 */}
         <p style={{
@@ -238,9 +239,9 @@ export function ViewPage({ data }) {
         {message && (
           <div style={{
             marginTop: 14, maxWidth: 320, marginLeft: "auto", marginRight: "auto",
-            background: C.cream, border: `1px solid ${C.faded}`,
+            background: C.cream, border: "1px solid " + C.faded,
             borderRadius: 4, padding: "16px 20px",
-            boxShadow: `3px 3px 0 ${C.faded}40`,
+            boxShadow: "3px 3px 0 " + C.faded + "40",
             transform: "rotate(0.5deg)",
           }}>
             <p style={{ fontFamily: FONT, fontSize: 13, color: C.faded, margin: "0 0 6px 0" }}>💌 비밀 메시지 ~</p>
