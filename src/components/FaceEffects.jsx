@@ -466,11 +466,17 @@ const EFFECTS = [
 
 export function FaceEffects({ active, faceBox }) {
   const [effectIdx, setEffectIdx] = useState(() => Math.floor(Math.random() * EFFECTS.length));
-  const [screenH, setScreenH] = useState(0);
+  const [dims, setDims] = useState({ w: 300, h: 600, sw: 375, sh: 700 });
 
-  // iOS에서 정확한 화면 높이 확보
+  // 화면 크기를 px로 직접 측정
   useEffect(() => {
-    const update = () => setScreenH(window.innerHeight);
+    const update = () => {
+      const sw = window.innerWidth;
+      const sh = window.innerHeight;
+      const w = Math.min(sw * 0.8, 320);
+      const h = w * (400 / 300); // viewBox 비율 유지
+      setDims({ w, h, sw, sh });
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -489,10 +495,13 @@ export function FaceEffects({ active, faceBox }) {
   const effect = EFFECTS[effectIdx];
   const hasTracking = faceBox && faceBox.w > 0.03;
 
+  // iOS fallback: 모든 좌표를 px로 직접 계산
+  const fallbackLeft = (dims.sw - dims.w) / 2;
+  const fallbackTop = (dims.sh - dims.h) / 2 - dims.h * 0.05;
+
   return (
     <>
       {hasTracking ? (
-        /* Android: FaceDetector 트래킹 */
         (() => {
           const faceScale = faceBox.w * 2.5;
           const svgW = faceScale * 100;
@@ -514,18 +523,15 @@ export function FaceEffects({ active, faceBox }) {
           );
         })()
       ) : (
-        /* iOS fallback: JS로 계산한 px 값 직접 사용 */
         <svg
           data-face-effect
           viewBox="0 0 300 400"
-          preserveAspectRatio="xMidYMid meet"
-          width={Math.min(window.innerWidth * 0.8, 320)}
-          height={screenH > 0 ? screenH * 0.65 : 500}
           style={{
             position: "fixed",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -55%)",
+            left: fallbackLeft + "px",
+            top: fallbackTop + "px",
+            width: dims.w + "px",
+            height: dims.h + "px",
             zIndex: 1,
             pointerEvents: "none",
             filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
