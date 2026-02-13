@@ -328,91 +328,65 @@ export function ViewPage({ data }) {
             </>
           )}
         </div>
-
-        {/* 📷 셀카 미리보기 모달 */}
-        {capturedImg && (
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 10,
-            background: "rgba(0,0,0,0.85)",
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center",
-            padding: 20,
-          }}>
-            <img
-              src={capturedImg}
-              alt="셀카"
-              style={{
-                maxWidth: "90%", maxHeight: "65vh",
-                borderRadius: 12, border: "3px solid #fff",
-                boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
-              }}
-            />
-            <p style={{
-              fontFamily: FONT, fontSize: 16, color: C.cream,
-              marginTop: 16, textAlign: "center",
-            }}>
-              📱 이미지를 <b>길게 눌러</b> 저장하세요!
-            </p>
-            <button
-              onClick={() => setCapturedImg(null)}
-              style={{
-                marginTop: 12, padding: "10px 28px",
-                background: C.mustard, border: "none",
-                borderRadius: 20, fontFamily: FONT,
-                fontSize: 15, fontWeight: 700,
-                color: "#fff", cursor: "pointer",
-              }}
-            >
-              ✕ 닫기
-            </button>
-          </div>
-        )}
       </div>
     );
   }
 
   // ─── DONE ───
   const theme = getCakeTheme(age);
+
+  // 이미지 저장
+  const handleSaveImg = useCallback(() => {
+    if (!capturedImg) return;
+    const a = document.createElement("a");
+    a.href = capturedImg;
+    a.download = "birthday-" + name + "-" + Date.now() + ".jpg";
+    a.click();
+  }, [capturedImg, name]);
+
   return (
-    <div style={{ ...pageStyle, background: C.paper, overflow: "visible" }}>
-      <PaperGrain />
+    <div style={{ ...pageStyle, background: C.darkBg, overflow: "auto" }}>
       {showConfetti && <WarmConfetti />}
-      <Starburst size={150} color={C.mustard} style={{ position: "absolute", top: -20, right: -30 }} />
-      <Starburst size={100} color={C.dustyPink} style={{ position: "absolute", bottom: 30, left: -20 }} />
 
-      <div style={{ animation: "bounceIn 0.6s ease-out", textAlign: "center", zIndex: 1, width: "100%", maxWidth: 380, overflow: "visible" }}>
-        <div style={{ fontSize: "clamp(40px, 12vw, 64px)", marginBottom: 8, animation: "tada 1s ease-out" }}>🎉</div>
+      <div style={{ textAlign: "center", zIndex: 1, width: "100%", maxWidth: 400, padding: "20px 0" }}>
+        {/* 🎉 타이틀 */}
+        <div style={{ fontSize: "clamp(36px, 10vw, 56px)", marginBottom: 4, animation: "tada 1s ease-out" }}>🎉</div>
+        <h2 style={{ fontFamily: FONT, fontSize: "clamp(20px, 6vw, 30px)", color: C.cream, margin: "0 0 4px" }}>
+          생일 축하해, {name}!
+        </h2>
 
-        <div style={{
-          display: "inline-block", padding: "8px 24px", marginBottom: 16,
-          border: "3px solid " + C.orange, borderRadius: "50%",
-          transform: "rotate(-4deg)",
-          boxShadow: "inset 0 0 0 2px " + C.orange + "40",
-        }}>
-          <h2 style={{ fontFamily: FONT, fontSize: "clamp(18px, 5vw, 28px)", color: C.orange, margin: 0 }}>
-            생일 축하해!
-          </h2>
-        </div>
-
-        <p style={{ fontFamily: FONT, fontSize: "clamp(20px, 6vw, 32px)", color: C.ink, margin: "0 0 16px 0", fontWeight: 700 }}>
-          {name}
-        </p>
-
-        {/* 케이크 + 연기 (overflow visible 필수!) */}
-        <div style={{ overflow: "visible", position: "relative" }}>
-          <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} justBlownOut={justBlownOut} />
-        </div>
-
-        {/* B급 연기 코멘트 */}
-        <p style={{
-          fontFamily: FONT, fontSize: "clamp(13px, 3.5vw, 16px)", color: C.faded,
-          margin: "8px 0 0 0", animation: "fadeIn 1.5s ease-out",
-        }}>
-          {getSmokeComment(age)}
-        </p>
+        {/* 📸 촬영된 사진 */}
+        {capturedImg ? (
+          <div style={{ margin: "16px auto", position: "relative" }}>
+            <img
+              src={capturedImg}
+              alt="생일 셀카"
+              style={{
+                width: "90%", maxWidth: 360,
+                borderRadius: 16,
+                border: "4px solid " + C.mustard,
+                boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+              }}
+            />
+            {/* 이미지 위 오버레이 텍스트 */}
+            <div style={{
+              position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
+              fontFamily: FONT, fontSize: 13, color: C.cream,
+              background: "rgba(0,0,0,0.5)", padding: "4px 14px",
+              borderRadius: 12, backdropFilter: "blur(4px)",
+            }}>
+              📱 이미지를 길게 눌러도 저장 가능!
+            </div>
+          </div>
+        ) : (
+          /* 사진 없으면 케이크 */
+          <div style={{ overflow: "visible", position: "relative", margin: "16px 0" }}>
+            <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} justBlownOut={justBlownOut} />
+          </div>
+        )}
 
         {/* 디스 메시지 */}
-        <HandBox color={C.mustard} style={{ marginTop: 20, maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
+        <HandBox color={C.mustard} style={{ marginTop: 12, maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
           <p style={{ fontFamily: FONT, fontSize: "clamp(15px, 4vw, 20px)", color: C.brown, lineHeight: 1.6, margin: 0, wordBreak: "keep-all" }}>
             {roast}
           </p>
@@ -421,27 +395,36 @@ export function ViewPage({ data }) {
         {/* 비밀 메시지 */}
         {message && (
           <div style={{
-            marginTop: 14, maxWidth: 320, marginLeft: "auto", marginRight: "auto",
-            background: C.cream, border: "1px solid " + C.faded,
-            borderRadius: 4, padding: "16px 20px",
-            boxShadow: "3px 3px 0 " + C.faded + "40",
-            transform: "rotate(0.5deg)",
+            marginTop: 12, maxWidth: 320, marginLeft: "auto", marginRight: "auto",
+            background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 12, padding: "14px 18px",
           }}>
             <p style={{ fontFamily: FONT, fontSize: 13, color: C.faded, margin: "0 0 6px 0" }}>💌 비밀 메시지 ~</p>
-            <p style={{ fontFamily: FONT, fontSize: "clamp(16px, 4.5vw, 20px)", color: C.ink, lineHeight: 1.5, margin: 0, wordBreak: "keep-all" }}>
+            <p style={{ fontFamily: FONT, fontSize: "clamp(16px, 4.5vw, 20px)", color: C.cream, lineHeight: 1.5, margin: 0, wordBreak: "keep-all" }}>
               "{message}"
             </p>
           </div>
         )}
 
-        <AdBanner slot="3333333333" style={{ marginTop: 16 }} />
+        {/* 버튼들 */}
+        <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+          {capturedImg && (
+            <button onClick={handleSaveImg} style={{
+              ...warmBtn, background: C.mustard, color: "#fff",
+              width: "80%", maxWidth: 280,
+            }}>
+              💾 사진 저장하기
+            </button>
+          )}
+          <button
+            onClick={() => { window.location.hash = ""; window.location.reload(); }}
+            style={{ ...warmBtn, width: "80%", maxWidth: 280 }}
+          >
+            🎂 나도 케이크 보내기
+          </button>
+        </div>
 
-        <button
-          onClick={() => { window.location.hash = ""; window.location.reload(); }}
-          style={{ ...warmBtn, marginTop: 12 }}
-        >
-          🎂 나도 케이크 보내기
-        </button>
+        <AdBanner slot="3333333333" style={{ marginTop: 16 }} />
       </div>
     </div>
   );
