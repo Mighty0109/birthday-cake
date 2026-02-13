@@ -7,16 +7,16 @@ import { useState, useEffect } from "react";
 export function SvgSmoke({ cx, cy, delay = 0, age = 1, tiltX = 0 }) {
   const [puffStates, setPuffStates] = useState([]);
   const intensity = Math.min(age, 25);
-  const puffCount = Math.min(5, 2 + Math.floor(intensity / 5));
-  const baseSize = 6 + intensity * 0.5;
+  const puffCount = Math.min(3, 1 + Math.floor(intensity / 8));
+  const baseSize = 3 + intensity * 0.3;
 
   useEffect(() => {
     const initPuffs = Array.from({ length: puffCount }, (_, p) => ({
       t: -(delay * 0.3 + p * 0.6),
       dur: 1.8 + p * 0.8,
       wobbleDir: p % 2 === 0 ? -1 : 1,
-      wobbleAmt: 5 + p * 2.5,
-      size: baseSize + p * 2,
+      wobbleAmt: 3 + p * 1.5,
+      size: baseSize + p * 1,
     }));
     setPuffStates(initPuffs);
 
@@ -37,17 +37,17 @@ export function SvgSmoke({ cx, cy, delay = 0, age = 1, tiltX = 0 }) {
       {puffStates.map((puff, p) => {
         if (puff.t < 0) return null;
         const progress = puff.t / puff.dur;
-        const y = -progress * (35 + p * 15);
+        const y = -progress * (20 + p * 10);
         const baseWobble = puff.wobbleDir * puff.wobbleAmt * progress;
         const tiltOffset = tiltX * progress * 1.5;
         const x = baseWobble + tiltOffset;
-        const r = puff.size * (0.5 + progress * 1.5);
+        const r = puff.size * (0.5 + progress * 1.0);
         const op =
           progress < 0.1
-            ? (progress / 0.1) * 0.6
+            ? (progress / 0.1) * 0.45
             : progress < 0.5
-            ? 0.6 - (progress - 0.1) * 0.25
-            : Math.max(0, 0.5 - (progress - 0.5) * 0.9);
+            ? 0.45 - (progress - 0.1) * 0.2
+            : Math.max(0, 0.37 - (progress - 0.5) * 0.7);
         return <circle key={p} cx={x} cy={y} r={r} fill="#BBB" opacity={op} />;
       })}
     </g>

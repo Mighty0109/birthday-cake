@@ -23,86 +23,77 @@ export function ViewPage({ data }) {
   const [failCount, setFailCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [justBlownOut, setJustBlownOut] = useState(false);
-  const [capturedImg, setCapturedImg] = useState(null); // 셀카 미리보기
+  const [capturedImg, setCapturedImg] = useState(null);
 
   const { tiltX, requestPermission } = useGyroscope();
   const camera = useCamera();
   const cameraStopRef = useRef(camera.stop);
   cameraStopRef.current = camera.stop;
 
-  const handleDone = useCallback(() => {
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
-
-    // 즉시 사진 캡처 (카메라 종료 전에!)
+  // ─── 사진 캡처 (동기 - 비디오만) ───
+  const capturePhoto = useCallback(() => {
     try {
       const container = document.querySelector("[data-capture]");
       const video = container?.querySelector("video");
-      if (video && video.videoWidth) {
-        const cw = container.clientWidth;
-        const ch = container.clientHeight;
-        const dpr = 2;
-        const canvas = document.createElement("canvas");
-        canvas.width = cw * dpr;
-        canvas.height = ch * dpr;
-        const ctx = canvas.getContext("2d");
-        ctx.scale(dpr, dpr);
+      if (!video || !video.videoWidth) return null;
 
-        // 비디오 (mirror)
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        const videoAR = vw / vh;
-        const displayAR = cw / ch;
-        let sw, sh, sx, sy;
-        if (videoAR > displayAR) { sh = vh; sw = vh * displayAR; sx = (vw - sw) / 2; sy = 0; }
-        else { sw = vw; sh = vw / displayAR; sx = 0; sy = (vh - sh) / 2; }
-        ctx.save(); ctx.translate(cw, 0); ctx.scale(-1, 1);
-        ctx.globalAlpha = 0.75;
-        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
-        ctx.restore();
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      const dpr = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = cw * dpr;
+      canvas.height = ch * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
 
-        // 어두운 오버레이
-        ctx.globalAlpha = 1;
-        const grad = ctx.createRadialGradient(cw * 0.5, ch * 0.7, 0, cw * 0.5, ch * 0.7, Math.max(cw, ch) * 0.6);
-        grad.addColorStop(0, "rgba(200,120,40,0.15)");
-        grad.addColorStop(1, "rgba(30,20,15,0.55)");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, cw, ch);
-
-        // 하단 텍스트
-        ctx.fillStyle = "rgba(20,15,10,0.6)";
-        ctx.fillRect(0, ch - 50, cw, 50);
-        ctx.font = "bold 16px 'Gaegu', cursive";
-        ctx.fillStyle = "#D4A535"; ctx.textAlign = "center";
-        ctx.fillText("🎂 생일 축하해! 후~ 🌬️", cw / 2, ch - 20);
-
-        // 케이크 SVG도 그리기 (비동기 → 실패해도 사진은 저장)
-        const cakeSvg = container.querySelector("svg[data-cake]");
-        if (cakeSvg) {
-          const contRect = container.getBoundingClientRect();
-          const svgRect = cakeSvg.getBoundingClientRect();
-          const clone = cakeSvg.cloneNode(true);
-          clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-          const svgStr = new XMLSerializer().serializeToString(clone);
-          const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
-          const url = URL.createObjectURL(blob);
-          const img = new Image();
-          img.onload = () => {
-            ctx.drawImage(img, svgRect.left - contRect.left, svgRect.top - contRect.top, svgRect.width, svgRect.height);
-            URL.revokeObjectURL(url);
-            setCapturedImg(canvas.toDataURL("image/jpeg", 0.92));
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            setCapturedImg(canvas.toDataURL("image/jpeg", 0.92));
-          };
-          img.src = url;
-        } else {
-          setCapturedImg(canvas.toDataURL("image/jpeg", 0.92));
-        }
+      // 비디오 (mirror)
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const videoAR = vw / vh;
+      const displayAR = cw / ch;
+      let sw, sh, sx, sy;
+      if (videoAR > displayAR) {
+        sh = vh; sw = vh * displayAR; sx = (vw - sw) / 2; sy = 0;
+      } else {
+        sw = vw; sh = vw / displayAR; sx = 0; sy = (vh - sh) / 2;
       }
+      ctx.save();
+      ctx.translate(cw, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+      ctx.restore();
+
+      // 어두운 오버레이
+      const grad = ctx.createRadialGradient(
+        cw * 0.5, ch * 0.7, 0,
+        cw * 0.5, ch * 0.7, Math.max(cw, ch) * 0.6
+      );
+      grad.addColorStop(0, "rgba(200,120,40,0.15)");
+      grad.addColorStop(1, "rgba(30,20,15,0.5)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, cw, ch);
+
+      // 하단 텍스트
+      ctx.fillStyle = "rgba(20,15,10,0.6)";
+      ctx.fillRect(0, ch - 50, cw, 50);
+      ctx.font = "bold 16px 'Gaegu', cursive";
+      ctx.fillStyle = "#D4A535";
+      ctx.textAlign = "center";
+      ctx.fillText("\uD83C\uDF82 \uC0DD\uC77C \uCD95\uD558\uD574! \uD6C4~ \uD83C\uDF2C\uFE0F", cw / 2, ch - 20);
+
+      return canvas.toDataURL("image/jpeg", 0.92);
     } catch (e) {
-      // 캡처 실패해도 done 진행
+      return null;
     }
+  }, []);
+
+  // ─── 불기 완료 ───
+  const handleDone = useCallback(() => {
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+
+    // 사진 캡처 (카메라 종료 전!)
+    const photo = capturePhoto();
+    if (photo) setCapturedImg(photo);
 
     // 카메라 종료 + done 전환
     cameraStopRef.current();
@@ -111,7 +102,7 @@ export function ViewPage({ data }) {
     setRoast(getRoast(age));
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 5000);
-  }, [age]);
+  }, [age, capturePhoto]);
 
   const mic = useMicrophone({
     onDone: handleDone,
@@ -120,7 +111,6 @@ export function ViewPage({ data }) {
   });
 
   const handleIntroTap = async () => {
-    // ⚠️ 자이로 권한을 맨 먼저! iOS는 터치 직후에만 허용
     try { await requestPermission(); } catch {}
     const micOk = await mic.start();
     await camera.start();
@@ -128,6 +118,28 @@ export function ViewPage({ data }) {
     if (micOk) setTimeout(() => mic.startDetection(), 500);
   };
 
+  // 이미지 저장
+  const handleSaveImg = useCallback(() => {
+    if (!capturedImg) return;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      const w = window.open();
+      if (w) {
+        w.document.write(
+          '<html><head><title>\uC0DD\uC77C \uC0AC\uC9C4</title>' +
+          '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+          '<style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;}img{max-width:100%;max-height:100vh;}</style>' +
+          '</head><body><img src="' + capturedImg + '" /></body></html>'
+        );
+        w.document.close();
+      }
+    } else {
+      const a = document.createElement("a");
+      a.href = capturedImg;
+      a.download = "birthday-" + name + "-" + Date.now() + ".jpg";
+      a.click();
+    }
+  }, [capturedImg, name]);
 
   // ─── INTRO ───
   if (phase === "intro") {
@@ -135,7 +147,7 @@ export function ViewPage({ data }) {
       <div onClick={handleIntroTap} style={{ ...pageStyle, background: C.darkBg, cursor: "pointer" }}>
         <PaperGrain dark />
         <div style={{ animation: "pulse 2.5s ease-in-out infinite", textAlign: "center", zIndex: 1 }}>
-          <div style={{ fontSize: "clamp(60px, 18vw, 90px)", marginBottom: 16, filter: "drop-shadow(0 0 25px rgba(255,160,50,0.6))" }}>🎂</div>
+          <div style={{ fontSize: "clamp(60px, 18vw, 90px)", marginBottom: 16, filter: "drop-shadow(0 0 25px rgba(255,160,50,0.6))" }}>{"\uD83C\uDF82"}</div>
           <p style={{ fontFamily: FONT, fontSize: "clamp(20px, 6vw, 30px)", color: C.cream, margin: "0 0 8px 0" }}>
             {name}에게 케이크가 도착했어!
           </p>
@@ -162,7 +174,6 @@ export function ViewPage({ data }) {
     const glow = 1 - mic.blowIntensity * 0.7;
     return (
       <div data-capture style={{ ...pageStyle, background: C.darkBg, overflow: "visible" }}>
-        {/* 전면 카메라 */}
         <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
           <video ref={camera.videoRef} autoPlay playsInline muted style={{
             width: "100%", height: "100%",
@@ -170,13 +181,11 @@ export function ViewPage({ data }) {
             opacity: 0.75,
           }} />
         </div>
-        {/* 어두운 오버레이 */}
         <div style={{
           position: "absolute", inset: 0, zIndex: 0,
           background: "radial-gradient(ellipse at 50% 70%, rgba(200,120,40," + (0.2 * glow) + ") 0%, rgba(30,20,15,0.55) 60%)",
         }} />
 
-        {/* 케이크 - 하단에서 살짝 위 */}
         <div style={{
           position: "absolute", bottom: 80, left: 0, right: 0,
           zIndex: 1, textAlign: "center", overflow: "visible",
@@ -186,14 +195,12 @@ export function ViewPage({ data }) {
           </div>
         </div>
 
-        {/* 하단 UI - 맨 아래 고정 */}
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
           zIndex: 2, textAlign: "center",
           padding: "12px 0 16px",
           background: "linear-gradient(transparent, rgba(20,15,10,0.9) 40%)",
         }}>
-          {/* 바람 세기 게이지 */}
           <div style={{ width: 120, margin: "0 auto 6px" }}>
             <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.15)", borderRadius: 3, overflow: "hidden" }}>
               <div style={{
@@ -203,8 +210,6 @@ export function ViewPage({ data }) {
               }} />
             </div>
           </div>
-
-          {/* 폐활량 디스 */}
           <div style={{ minHeight: 18 }}>
             {failCount > 0 && mic.blowIntensity < 0.1 && (
               <p style={{ fontFamily: FONT, fontSize: 12, color: C.dustyPink, margin: 0, animation: "shake 0.5s ease-out" }}>
@@ -214,7 +219,6 @@ export function ViewPage({ data }) {
               </p>
             )}
           </div>
-
           <p style={{ fontFamily: FONT, fontSize: "clamp(14px, 4vw, 18px)", color: C.mustard, margin: 0 }}>
             소원 빌고... 후~ 불어봐! 🌬️
           </p>
@@ -224,66 +228,61 @@ export function ViewPage({ data }) {
   }
 
   // ─── DONE ───
-  const theme = getCakeTheme(age);
-
-  // 이미지 저장
-  const handleSaveImg = useCallback(() => {
-    if (!capturedImg) return;
-    const a = document.createElement("a");
-    a.href = capturedImg;
-    a.download = "birthday-" + name + "-" + Date.now() + ".jpg";
-    a.click();
-  }, [capturedImg, name]);
-
   return (
-    <div style={{ ...pageStyle, background: C.darkBg, overflow: "auto" }}>
+    <div style={{
+      minHeight: "100dvh",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      paddingTop: 30,
+      paddingBottom: 40,
+      paddingLeft: 16,
+      paddingRight: 16,
+      background: C.darkBg,
+      position: "relative",
+    }}>
       {showConfetti && <WarmConfetti />}
 
-      <div style={{ textAlign: "center", zIndex: 1, width: "100%", maxWidth: 400, padding: "20px 0" }}>
-        {/* 🎉 타이틀 */}
-        <div style={{ fontSize: "clamp(36px, 10vw, 56px)", marginBottom: 4, animation: "tada 1s ease-out" }}>🎉</div>
-        <h2 style={{ fontFamily: FONT, fontSize: "clamp(20px, 6vw, 30px)", color: C.cream, margin: "0 0 4px" }}>
+      <div style={{ textAlign: "center", zIndex: 1, width: "100%", maxWidth: 400 }}>
+        <div style={{ fontSize: "clamp(36px, 10vw, 56px)", marginBottom: 4, animation: "tada 1s ease-out" }}>{"\uD83C\uDF89"}</div>
+        <h2 style={{ fontFamily: FONT, fontSize: "clamp(22px, 6vw, 32px)", color: C.cream, margin: "0 0 12px" }}>
           생일 축하해, {name}!
         </h2>
 
-        {/* 📸 촬영된 사진 */}
         {capturedImg ? (
-          <div style={{ margin: "16px auto", position: "relative" }}>
+          <div style={{ margin: "0 auto 16px", textAlign: "center" }}>
             <img
               src={capturedImg}
               alt="생일 셀카"
               style={{
-                width: "90%", maxWidth: 360,
+                width: "85vw", maxWidth: 340,
                 borderRadius: 16,
-                border: "4px solid " + C.mustard,
-                boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+                border: "3px solid " + C.mustard,
+                boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+                display: "block",
+                margin: "0 auto",
               }}
             />
-            {/* 이미지 위 오버레이 텍스트 */}
-            <div style={{
-              position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
-              fontFamily: FONT, fontSize: 13, color: C.cream,
-              background: "rgba(0,0,0,0.5)", padding: "4px 14px",
-              borderRadius: 12, backdropFilter: "blur(4px)",
+            <p style={{
+              fontFamily: FONT, fontSize: 12, color: "rgba(255,255,255,0.5)",
+              marginTop: 6,
             }}>
-              📱 이미지를 길게 눌러도 저장 가능!
-            </div>
+              📱 이미지를 길게 눌러도 저장 가능
+            </p>
           </div>
         ) : (
-          /* 사진 없으면 케이크 */
-          <div style={{ overflow: "visible", position: "relative", margin: "16px 0" }}>
+          <div style={{ overflow: "visible", position: "relative", margin: "0 0 16px" }}>
             <WarmCake age={age} name={name} candlesLit={false} tiltX={tiltX} blowIntensity={0} justBlownOut={justBlownOut} />
           </div>
         )}
 
-        {/* 디스 메시지 */}
-        <HandBox color={C.mustard} style={{ marginTop: 12, maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
+        <HandBox color={C.mustard} style={{ maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
           <p style={{ fontFamily: FONT, fontSize: "clamp(15px, 4vw, 20px)", color: C.brown, lineHeight: 1.6, margin: 0, wordBreak: "keep-all" }}>
             {roast}
           </p>
         </HandBox>
 
-        {/* 비밀 메시지 */}
         {message && (
           <div style={{
             marginTop: 12, maxWidth: 320, marginLeft: "auto", marginRight: "auto",
@@ -297,7 +296,6 @@ export function ViewPage({ data }) {
           </div>
         )}
 
-        {/* 버튼들 */}
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
           {capturedImg && (
             <button onClick={handleSaveImg} style={{
