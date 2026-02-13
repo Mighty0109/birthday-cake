@@ -53,7 +53,7 @@ export function WarmCake({ age, name, candlesLit, tiltX, blowIntensity, justBlow
   }
 
   const colors = [C.dustyPink, C.sage, C.mustard, C.orange, "#B8A0D4", "#7CB8B8", "#D4B878", "#C47878"];
-  const vTop = -50;
+  const vTop = -120;
   const vH = 160 - vTop;
 
   return (

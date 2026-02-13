@@ -50,6 +50,7 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
     const arr = new Uint8Array(an.frequencyBinCount);
     let blowStartTime = 0;
     let isBlowing = false;
+    let lastBlowTime = 0; // 마지막으로 바람 감지된 시간
 
     const detect = () => {
       an.getByteFrequencyData(arr);
@@ -60,35 +61,33 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
 
       const now = Date.now();
 
-      if (avg > 0.3) {
+      if (avg > 0.15) {
+        // 바람 감지
+        lastBlowTime = now;
         if (!isBlowing) {
           isBlowing = true;
           blowStartTime = now;
         }
-        const elapsed = (now - blowStartTime) / 1000; // 초
-        const progress = Math.min(1, elapsed / 1.5); // 1.5초 기준
+        const elapsed = (now - blowStartTime) / 1000;
+        const progress = Math.min(1, elapsed / 1.0);
         setBlowIntensity(progress);
 
-        if (elapsed >= 1.5) {
-          // 1.5초 이상 불었으면 완료!
+        if (elapsed >= 1.0) {
+          // 1.5초 이상 → 완료!
           if (animRef.current) cancelAnimationFrame(animRef.current);
-          if (streamRef.current) {
-            streamRef.current.getTracks().forEach((t) => t.stop());
-            streamRef.current = null;
-          }
           onDoneRef.current();
           return;
         }
       } else {
-        if (isBlowing) {
+        // 바람 없음 - 0.3초 여유 (순간 끊김 허용)
+        if (isBlowing && (now - lastBlowTime) > 300) {
           isBlowing = false;
           blowStartTime = 0;
         }
-        const cur = blowAccRef.current;
-        const dec = Math.max(0, cur - 0.03);
-        blowAccRef.current = dec;
-        setBlowIntensity(dec);
-        if (dec <= 0 && failCountRef.current < 3 && Math.random() < 0.005) {
+        // 서서히 게이지 감소
+        blowAccRef.current = Math.max(0, (blowAccRef.current || 0) - 0.02);
+        setBlowIntensity(blowAccRef.current);
+        if (blowAccRef.current <= 0 && failCountRef.current < 3 && Math.random() < 0.005) {
           setFailCount((f) => f + 1);
         }
       }
