@@ -111,11 +111,13 @@ export function ViewPage({ data }) {
   });
 
   const handleIntroTap = async () => {
-    try { await requestPermission(); } catch {}
+    // 마이크/카메라 먼저 — iOS Safari user gesture 컨텍스트 유지
     const micOk = await mic.start();
     await camera.start();
     setPhase("lit");
     if (micOk) setTimeout(() => mic.startDetection(), 500);
+    // 자이로는 부수적, await 안 해서 user gesture 안 먹게
+    requestPermission().catch(() => {});
   };
 
   // 이미지 저장

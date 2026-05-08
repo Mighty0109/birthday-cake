@@ -24,6 +24,9 @@ export function useMicrophone({ onDone, failCount, setFailCount }) {
       streamRef.current = stream;
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = ctx;
+      if (ctx.state === "suspended") {
+        try { await ctx.resume(); } catch {}
+      }
       const src = ctx.createMediaStreamSource(stream);
       const an = ctx.createAnalyser();
       an.fftSize = 256;
